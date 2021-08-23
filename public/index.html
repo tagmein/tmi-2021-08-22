@@ -162,6 +162,7 @@
           localStorage.setItem(k, oldContents);
         }
         payloadElem.value = contents ?? oldContents ?? "";
+        localStorage.setItem(":last-visited-key", k);
       }
       const listTools = {
         dig(initialValue) {
@@ -221,7 +222,9 @@
       return listTools;
     }
     const listOne = list(document.body);
-    listOne.dig("paper");
+    for (const segment of (localStorage.getItem(':last-visited-key') ?? "home").split(' ')) {
+      listOne.dig(segment);
+    }
   </script>
 </body>
 
@@ -392,6 +395,7 @@
           localStorage.setItem(k, oldContents);
         }
         payloadElem.value = contents ?? oldContents ?? "";
+        localStorage.setItem(":last-visited-key", k);
       }
       const listTools = {
         dig(initialValue) {
@@ -451,7 +455,9 @@
       return listTools;
     }
     const listOne = list(document.body);
-    listOne.dig("paper");
+    for (const segment of (localStorage.getItem(':last-visited-key') ?? "home").split(' ')) {
+      listOne.dig(segment);
+    }
   <\/script> <!-- how to escape this: <\\/script> -->
 </body>`
   );

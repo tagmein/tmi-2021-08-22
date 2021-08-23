@@ -57,9 +57,18 @@
       color: yellow;
     }
     .fullscreen {
+      border-top-left-radius: 4px;
+      padding: 2px 4px;
       position: absolute;
       right: 4px;
       bottom: 4px;
+      cursor: default;
+    }
+    .fullscreen:hover {
+      background-color: #44a;
+    }
+    .fullscreen:active {
+      background-color: #447;
     }
     .footer {
       max-width: 60vw;
@@ -84,17 +93,27 @@
       appendTo.appendChild(e);
       return e;
     }
-    const footer = el(document.body, 'footer')
+    const footer = el(document.body, "footer");
     footer.appendChild(
-      document.createTextNode('tagme.in • Public Domain • Enter "src" to view the source of index.html, or right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.')
-    )
-    footer.addEventListener('click', () => {
-      footer.parentElement.removeChild(footer)
-    })
+      document.createTextNode(
+        'tagme.in • Public Domain • Enter "src" to view the source of index.html, or right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.'
+      )
+    );
+    footer.addEventListener("click", () => {
+      footer.parentElement.removeChild(footer);
+    });
     const fs = el(document.body, "fullscreen");
     fs.appendChild(document.createTextNode("Fullscreen"));
     fs.addEventListener("click", () => {
-      document.body.requestFullscreen();
+      if (
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement
+      ) {
+        document.exitFullscreen();
+      } else {
+        document.body.requestFullscreen();
+      }
     });
     function list(appendTo) {
       let activeLevel = 0;
@@ -268,9 +287,18 @@
       color: yellow;
     }
     .fullscreen {
+      border-top-left-radius: 4px;
+      padding: 2px 4px;
       position: absolute;
       right: 4px;
       bottom: 4px;
+      cursor: default;
+    }
+    .fullscreen:hover {
+      background-color: #44a;
+    }
+    .fullscreen:active {
+      background-color: #447;
     }
     .footer {
       max-width: 60vw;
@@ -295,17 +323,27 @@
       appendTo.appendChild(e);
       return e;
     }
-    const footer = el(document.body, 'footer')
+    const footer = el(document.body, "footer");
     footer.appendChild(
-      document.createTextNode('tagme.in • Public Domain • Enter "src" to view the source of index.html, or right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.')
-    )
-    footer.addEventListener('click', () => {
-      footer.parentElement.removeChild(footer)
-    })
+      document.createTextNode(
+        'tagme.in • Public Domain • Enter "src" to view the source of index.html, or right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.'
+      )
+    );
+    footer.addEventListener("click", () => {
+      footer.parentElement.removeChild(footer);
+    });
     const fs = el(document.body, "fullscreen");
     fs.appendChild(document.createTextNode("Fullscreen"));
     fs.addEventListener("click", () => {
-      document.body.requestFullscreen();
+      if (
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement
+      ) {
+        document.exitFullscreen();
+      } else {
+        document.body.requestFullscreen();
+      }
     });
     function list(appendTo) {
       let activeLevel = 0;
@@ -328,7 +366,7 @@
           for (const [iK, iV] of newItems) {
             localStorage.setItem(iK, iV);
           }
-          alert(\`Learned $\{newItems.length} items\`);
+          alert(`Learned ${newItems.length} items`);
         } else {
           localStorage.setItem(k, payloadElem.value);
         }
@@ -415,5 +453,6 @@
     const listOne = list(document.body);
     listOne.dig("paper");
   <\/script> <!-- how to escape this: <\\/script> -->
-</body>`);
+</body>`
+  );
 </script>

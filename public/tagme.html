@@ -1,0 +1,849 @@
+<!doctype html>
+<head>
+<meta charset="utf-8" />
+<title>TagMe</title>
+<script>
+ function bullet(x) {
+  return `• ${x}`
+ }
+ function onChangeSetText(inp, out) {
+  inp.addEventListener('change', () => {
+   out.innerText = inp.value
+  })
+  inp.addEventListener('keyup', () => {
+   out.innerText = inp.value
+  })
+  out.innerText = inp.value
+ }
+ function fromAnyOf(str, chars, end) {
+   const scanArea = str.substr(0, end)
+   const lastIndex = Math.max(...chars.map((x) => scanArea.lastIndexOf(x)))
+   if (lastIndex === -1) {
+    return scanArea
+   }
+   return scanArea.substr(lastIndex + 1, end - lastIndex).replace(/\}+$/, '')
+  }
+</script>
+<script>
+function parentAddress(root) {
+ const parsed = root.split(' ')
+ parsed.pop()
+ return parsed.join(' ')
+}
+function resolveAddress(root, newPath) {
+ return newPath
+  .split(' ')
+  .map(x => {
+   if (x === '..') {
+    return parentAddress(root)
+   }
+   else if (x === '.') {
+    return root
+   }
+   else {
+    return x
+   }
+  })
+  .join(' ')
+}
+</script>
+<script>
+function Comment(scope, payload) {
+ return `<!-- ${payload} -->`
+}
+function ExecJs(scope, payload) {
+ return `<sc`
+  + `ript>${payload}</`
+  + `script>`
+}
+function Scope(scope, payload) {
+ return `Scope:${payload}`
+}
+function Include(scope, payload) {
+ const newValue = {
+  address: resolveAddress(scope.address, payload)
+ }
+ Read(newValue)
+ newValue.script = newValue.value
+ return ExecuteScript(newValue)
+}
+function Normal(scope, payload) {
+ return payload
+}
+</script>
+<script>
+ let OperatorIndex = 0
+ const NORMAL = OperatorIndex
+ const INCLUDE = ++OperatorIndex
+ const SCOPE = ++OperatorIndex
+ const COMMENT = ++OperatorIndex
+ const EXECJS = ++OperatorIndex
+ function Operate(scope, operIndex, payload) {
+  switch (operIndex) {
+   case COMMENT:
+    return Comment(scope, payload)
+   case EXECJS:
+    return ExecJs(scope, payload)
+   case SCOPE:
+    return Scope(scope, payload)
+   case INCLUDE:
+    return Include(scope, payload)
+   default:
+    return Normal(scope, payload)
+  }
+ }
+</script>
+<script>
+function RunLine(scope) {
+ const colons = /^\:+/
+ const oper = scope.line.match(colons)
+ const operIndex = oper ? oper[0].length : 0
+ return Operate(scope, operIndex, scope.line.slice(operIndex))
+}
+</script>
+<script>
+let ExecuteScriptNestedLevel = 0
+function ExecuteScript(scope) {
+ if (ExecuteScriptNestedLevel > 5) {
+  return 'Refused to go deeper'
+ }
+ ExecuteScriptNestedLevel++
+ const result = scope.script ? scope
+  .script
+  .split('\n')
+  .map((line, index) => {
+   scope.line = line
+   scope.index = index
+   return RunLine(scope)
+  })
+  .join('\n')
+  : `no script found at ${JSON.stringify(scope.address)}`
+ ExecuteScriptNestedLevel--
+ return result
+}
+</script>
+<script>
+ function Preview(scope) {
+  const { display } = scope
+  const result = window === top || window.parent === top || window.parent.parent === top || window.parent.parent.parent === top
+   ? ExecuteScript({ ...scope, script: scope.value })
+   : '<style>body {color: green;}</style>nested'
+  display.innerHTML = ''
+  const newFrame = document.createElement('iframe')
+  display.appendChild(newFrame)
+  newFrame.contentDocument.open()
+  newFrame.contentDocument.write(
+  `<style>body {
+ background: #202020;
+ color: #f0c0f0;
+ white-space: pre-wrap;
+ margin: 0;
+ padding: 10px;
+ font-size: 14px;
+ font-family: 'IBM Plex Mono', monospace;
+}</style>` + result
+  )
+  newFrame.contentDocument.close()
+ }
+</script>
+<script>
+ function Read(scope) {
+  scope.value = localStorage.getItem(scope.address) ?? ''
+ }
+</script>
+<script>
+ function Write(scope) {
+  if (localStorage.getItem(scope.address) === scope.value) {
+   return 0
+  }
+  localStorage.setItem(scope.address, scope.value)
+  if(window.timeColors) {
+  window.timeColors.push('#404040')
+  }
+ 
+ syncClient.submit(scope.address, scope.value)
+  if(window.timeColors) {
+   window.timeColors.push('#8f8f8f')
+  }
+  return 1
+ }
+</script>
+<style>
+ html, body {
+  height: 100vh;
+  min-height: 100%;
+ }
+ body {
+  display: flex;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid re;
+  flex-direction: column;
+ }
+ input, textarea, button, select {
+  border: 1px solid black;
+  border-radius: 0;
+  padding: 12px;
+ }
+ body, input, textarea, button, select {
+  font-size: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  background: #202020;
+  color: #f0c0f0;
+  white-space: pre-wrap;
+ }
+ *:focus {
+  outline: none;
+  box-shadow: inset 0 0 0px 12px #505;
+ }
+ .app-edit {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+ }
+ #live-push, #live-pull {
+  display: none;
+ }
+</style>
+<script>
+const LIVE_RECEIVE_INTERVAL_MS = 5000
+const SUBMIT_DEBOUNCE_MS = 1000
+
+function mintStock(length) {
+ let s = ''
+ while(s < length) {
+  s = s + Math.random().toString(36)[3]
+ }
+ return s
+}
+const mockSyncServer = {
+ _listeners: {},
+ async listen(stock) {
+  const prevData = mockSyncServer._listeners[stock]
+  mockSyncServer._listeners[stock] = {}
+  return prevData
+ },
+ async submit(payload) {
+  for (const [listenerStock, data] of Object.entries(mockSyncServer._listeners)) {
+   Object.assign(
+    data,
+    payload
+   )
+  }
+ }
+}
+const syncClient = {
+ listenInterval: null,
+ stopListening() {
+  clearInterval(syncClient.listenInterval)
+ },
+ listen(address) {
+  syncClient.stopListening()
+  const addrStock = mintStock(address.length)
+   syncClient.listenInterval = setInterval(async () => {
+     const payload = await mockSyncServer.listen(addrStock)
+     console.log({ payload })
+   }, LIVE_RECEIVE_INTERVAL_MS)
+ },
+ async flush() {
+  const load = syncClient.pending
+  syncClient.pending = {}
+  if(window.timeColors) {
+   window.timeColors.push(
+    '#ffffff',
+    '#ffffff',
+    '#ffffff',
+    '#808080'
+   )
+  }
+  await mockSyncServer.submit(load)
+ },
+ pending: {},
+ submitTimeout: null,
+ submit(address, value) {
+  syncClient.pending[address] = value
+  clearTimeout(syncClient.submitTimeout)
+  syncClient.submitTimeout = setTimeout(syncClient.flush, SUBMIT_DEBOUNCE_MS)
+ }
+}
+
+</script>
+</head>
+ <body>
+<div class="app-edit">
+<style>
+ .editor input, .editor textarea {
+  box-sizing: border-box;
+ }
+ .editor {
+flex-grow: 1;
+  width: calc(256px + 25vw);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid black;
+  position: relative;
+ }
+ .editor input {
+  width: 100%;
+  height: 40px;
+ }
+ .editor textarea {
+  width: 100%;
+  height: calc(100% - 26px);
+  flex-grow: 1;
+  resize: none;
+ }
+ input:invalid + .editor-exit {
+  display: none;
+ }
+ .editor-exit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  line-height: 38px;
+  cursor: default;
+  user-select: none;
+  padding: 0;
+  text-align: center;
+  font-size: 24px;
+  color: #404040;
+ }
+ .editor-exit:hover {
+  color: #909090;
+ }
+ .editor-exit:active {
+  color: #c05050;
+ }
+</style>
+<div class="editor">
+<input required id="input-address" placeholder="address" />
+<div class="editor-exit">&times;</div>
+<textarea id="input-value" placeholder="empty"></textarea>
+</div>
+<script>
+if (!('Read' in window)) {
+ window.Read = () => 'example'
+}
+if (!('Write' in window)) {
+ window.Write = () => 0
+}
+
+const editorInstances = []
+let updateAllTimeout
+function updateAll() {
+ clearTimeout(updateAllTimeout)
+ updateAllTimeout = setTimeout(() => {
+  for (const { read } of editorInstances) {
+   read()
+  }
+ }, 50)
+}
+
+function newEditor(after, initialAddress) {
+ const origAppEditor = document.getElementsByClassName('app-edit')[0]
+ let appEditor
+ if (after) {
+  appEditor = origAppEditor.cloneNode(true)
+  document.body.insertBefore(appEditor, after.nextElementSibling)
+ }
+ else {
+  appEditor = origAppEditor
+ }
+
+ const editor = appEditor.getElementsByClassName('editor')[0]
+ const input = editor.firstElementChild
+ const textarea = editor.lastElementChild
+ const display = appEditor.getElementsByClassName('display')[0]
+ const exitButton = editor.getElementsByClassName('editor-exit')[0]
+ const editorFns = {}
+ function jump(address, append) {
+  input.value = resolveAddress(
+   input.value,
+   append ? `. ${address}` : address
+  )
+  localStorage.setItem(':clips:lastAddress', input.value)
+  read(true)
+ }
+ function read(overwrite=false) {
+  const scope = {
+   address: input.value,
+   display
+  }
+  Read(scope)
+  if (window.timeColors) {
+   window.timeColors.push(
+    '#000000',
+    '#000000',
+    '#000000',
+    '#000000'
+   )
+  }
+  Preview(scope)
+  if (overwrite) {
+   textarea.value = scope.value
+  }
+ }
+ function exit() {
+  const myIndex = editorInstances.indexOf(editorFns)
+  if (myIndex === 0) {
+   jump('')
+   return
+  }
+  editorInstances.splice(myIndex, 1)
+  appEditor.parentNode.removeChild(appEditor)
+ }  exitButton.addEventListener('click', exit)
+
+ editorFns.jump = jump
+ editorFns.read = read
+ editorFns.exit = exit
+ editorInstances.push(editorFns)
+ if (typeof initialAddress === 'string') {
+  input.value = initialAddress
+  read(true)
+ }
+ else {
+  setTimeout(
+   () => jump( localStorage.getItem(':clips:lastAddress') ?? ''
+   )
+  )
+ }
+ function tab(sourceElem, append, newWindow) {
+  const actOn = newWindow ? newEditor(appEditor, input.value) : editorFns
+  const start = sourceElem.selectionStart
+  const end = sourceElem.selectionEnd
+  if (start !== end) {
+   actOn.jump(
+    sourceElem.value.slice(
+     start,
+     end
+    ),
+    append
+   )
+  }
+  else {
+   actOn.jump(
+    fromAnyOf(sourceElem.value, ['\n', '{', ':'], start),
+    append
+   )
+  }
+ }
+ input.addEventListener('keydown', e => {
+  e.stopPropagation()
+  if (e.key === 'Tab') {
+   e.preventDefault()
+   return tab(input, e.shiftKey, e.altKey)
+  }
+  else if (e.key === 'Escape') {
+   exit()
+  }
+ })
+ textarea.addEventListener('keydown', e => {
+  e.stopPropagation()
+  if (e.key === 'Tab') {
+   e.preventDefault()
+   return tab(textarea, e.shiftKey, e.altKey)
+  }
+  else if (e.key === 'Escape') {
+   exit()
+  }
+ })
+ input.addEventListener('keyup', e => {
+  localStorage.setItem(':clips:lastAddress', input.value)
+  read(true)
+ })
+ textarea.addEventListener('keyup', e => {
+  const scope = {
+   address: input.value,
+   value: textarea.value
+  }
+  Write(scope)
+  updateAll()
+ })
+ 
+ return editorFns
+}
+</script>
+<style>
+ .display {
+  width: 100vw;
+  flex-grow: 1;
+  background: black;
+  position: relative;
+  overflow: hidden;
+ }
+ .display iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: black;
+  border: 2px solid black;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+ }
+</style>
+<div class="display"></div>
+</div>
+<script>
+ newEditor()
+</script>
+<style>
+.app-sync {
+  height: 40px;
+  border: 1px solid black;
+  white-space: pre;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+ }
+ .app-sync > button {
+  height: 40px;
+  line-height: 14px;
+  white-space: normal;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+ }
+ .app-sync > button input[type="checkbox"] {
+  display: block;
+  margin: 8px;
+  height: 40px;
+  width: 40px;
+  border-radius: 16px;
+  transition: transform 0.4s ease-in-out;
+  position: relative;
+ }
+ .app-sync > button input[type="checkbox"]:hover {
+  transform: scale(1.5);
+ }
+ .app-sync > button input[type="checkbox"]:checked {
+box-shadow: inset 0 0 8px 8px green;
+  top: -4px;
+ }
+ .app-sync > button input[type="checkbox"]:not(:checked) {
+box-shadow: inset 0 0 8px 8px darkred;
+ }
+ .app-sync .inputWrap {
+  flex-grow: 1;
+  position: relative;
+  height: 40px;
+  overflow: hidden;
+ }
+ .app-sync .inputWrap input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 40px;
+  width: 100%;
+  box-sizing: border-box;
+ }
+ #fullscreen:after {
+  content: 'Fullscreen'
+ }
+ body:fullscreen #fullscreen:after {
+  content: 'Exit'
+ }
+</style>
+
+<style>
+.log {
+ display: flex;
+ height: 256px;
+ flex-direction: row;
+ margin: 12px 0;
+ border: 1px solid black;
+}
+.log > div {
+ display: flex;
+ flex-direction: column;
+ max-width: 50%;
+ border-right: 1px solid black;
+ overflow: auto;
+}
+.log > .div > .div {
+ padding: 12px;
+}
+.log .timestamp {
+ background: #99449944;
+ border-bottom: 1px solid black;
+}
+</style>
+<script>
+function addLog(log, text) {
+ const entry = document.createElement('div')
+ const timestamp = document.createElement('div')
+ timestamp.classList.add('timestamp')
+ const message = document.createElement('div')
+ timestamp.innerText = new Date
+ message.innerText = text
+ entry.appendChild(timestamp)
+ entry.appendChild(message)
+ log.appendChild(entry)
+ return entry
+}
+</script>
+<style>
+ .appSyncTab {
+  height: 256px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: none;
+  flex-grow: 0;
+  flex-shrink: 0;
+  border: 1px solid black;
+  padding: 12px;
+ }
+ .appSyncTab button {
+  color: #202020;
+  background-color: #f0c0f0;
+  margin: 12px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  overflow: hidden;
+ }
+ .appSyncTab button:disabled {
+  background-color: #804080;
+  color: #d090d0;
+ }
+ .appSyncTab h2, .appSyncTab h3 {
+  margin: 0;
+ }
+</style>
+<script>
+ const TABS = {
+  HELP: 0,
+  SEND: 1,
+  RECEIVE: 2
+ }
+ let activeTabIndex = null
+ function switchTab(index) {
+  const currentTab = document.getElementById(`appSyncTab-${activeTabIndex}`)
+  if (currentTab) {
+   currentTab.style.display = 'none'
+  }
+  if (index === activeTabIndex) {
+   activeTabIndex = null
+  }
+  else {
+   activeTabIndex = index
+   document.getElementById(`appSyncTab-${activeTabIndex}`).style.display = 'block'
+  }
+ }
+</script>
+
+<div class="appSyncTab" id="appSyncTab-0"><h2>Welcome to TagMe.in</h2>
+<h3>How to use the editor</h3>
+Place a colon (:) at the start of a line to add a branch, then press Tab on your keyboard when you are at the end of a line to jump to that address. You may also select a word or phrase and press Tab to jump to the selected address.
+
+TagMe supports &lt;script&gt;, &lt;style&gt;, and all other valid HTML, CSS, and JavaScript. All data is stored locally on device memory and is not transmitted anywhere unless you initiate a "Send" to a specific URL or turn on live send.
+
+<h3>How to use send and receive</h3>
+Enter a URL at the bottom of the screen to send or receive content. Then click on the "Send" and "Receive" panels for next steps and look for the white buttons. When syncing content between devices, both devices must be set to the same sync URL. Sending and receiving is limited to the current address and all addresses with the current address as a prefix.
+<!--
+<h3>How to use live send and receive</h3>
+Below the buttons "Send" and "Receive" are live sync toggles switches. These toggles are red when in the "off" position and green when in the "on" position. When hovering over the toggle, it will expand for easier access. When live send is active, all changes you make on the current address are sent to the sync URL in batches, at most once every 5 seconds. Live sync activates immediately when clicking the red bar and it turning green. Live receive mode will overwrite any local changes at the current address and all addresses whose prefix is the current address, so please exercise appropriate caution when using the live receive feature.
+-->
+<h3>Editing and license</h3>
+TagMe.in is an Open Source project. Right click and "View Page Source" or File > Save Page As... to make TagMe your own. THIS ENTIRE WORK (all of the contents of https://tagme.in/index.html) IS HEREBY PLACED INTO THE PUBLIC DOMAIN BY THE AUTHOR(S)</div>
+<div class="appSyncTab" id="appSyncTab-1">push '
+<span id="appSync-1-address"></span><script>
+  setTimeout(() => onChangeSetText(
+   document.getElementById("input-address"),
+   document.getElementById("appSync-1-address")
+  ))
+</script>
+'
+to '
+<span id="appSync-1-url"></span><script>
+ setTimeout(() => onChangeSetText(
+  document.getElementById("syncUrl"),
+  document.getElementById("appSync-1-url")
+ ))
+</script>
+'?
+<button onclick="send()">Send content now</button><div id="send-logs"></div>
+</div>
+<div class="appSyncTab" id="appSyncTab-2">pull '
+<span id="appSync-2-address"></span><script>
+ setTimeout(() => onChangeSetText(
+  document.getElementById("input-address"),
+  document.getElementById("appSync-2-address")
+ ))
+</script>
+'
+from '
+<span id="appSync-2-url"></span><script>
+ setTimeout(() => onChangeSetText(
+  document.getElementById("syncUrl"),
+  document.getElementById("appSync-2-url")
+ ))
+</script>
+'?
+<button onclick="receive()">Receive content now</button><div id="receive-logs"></div>
+</div>
+<script>
+  function saveSyncUrl(input) {
+   localStorage.setItem(':clips:syncUrl', input.value)
+  }
+</script>
+<script>
+async function receive() {
+ const log = document.createElement('div')
+ log.classList.add('log')
+ const logs = document.getElementById('receive-logs')
+ logs.firstElementChild ? logs.insertBefore(log, logs.firstElementChild) : logs.appendChild(log)
+ const url = document.getElementById('syncUrl').value
+ addLog(log, `http get ${url}`)
+ try {
+  const response = await fetch(url)
+  const dict = await response.json()
+  const addresses = Object.keys(dict)
+ addLog(log, `ok: ${response.ok.toString()}, code: ${response.status}\nitems: ${addresses.length}\n\naddresses:\n${addresses.length > 0 ? addresses.map(bullet).join('\n') : ' (empty)'}`)
+ if (addresses.length > 0) {
+  const importEntry = addLog(log, 'would you like to import the loaded content?')
+  const accept = document.createElement('button')
+  accept.innerText = 'Accept'
+  const discard = document.createElement('button')
+  discard.innerText = 'Discard'
+  importEntry.appendChild(accept)
+  importEntry.appendChild(discard)
+  discard.addEventListener('click', () => {
+   importEntry.removeChild(accept)
+   discard.setAttribute('disabled', true)
+   discard.innerText = 'Discarded'
+  })
+  accept.addEventListener('click', () => {
+   const currentAddress = document.getElementById('input-address').value
+   const currentPrefix = `${currentAddress} `
+   const matchingAddrs = currentAddress === ''
+    ? addresses
+    : addresses.filter(x => x === currentAddress || x.startsWith(currentPrefix))
+   if (matchingAddrs.length === 0) {
+    alert('There are no matching addresses, navigate to another location before importing, or navigate to "" to import all')
+    return
+   }
+   const userApproves = confirm(`You are about to import ${matchingAddrs.length} items, continue?`)
+   if (userApproves) {
+    let changesMade = 0
+    for (const addr of matchingAddrs) {
+     changesMade += Write({ address: addr, value: dict[addr] }, addr === currentAddress)
+    }
+    const updateCurrent = { address: currentAddress }
+    Read(updateCurrent)
+    document.getElementById('input-value').value = updateCurrent.value
+    alert(`${changesMade} changes were applied`)
+   }
+   else {
+    alert('No changes were applied, the operation was canceled')
+   }
+  })
+  }
+ }
+ catch (e) {
+  addLog(log, `${e.constructor.name}: ${e.message}`)
+ }
+}
+</script>
+<script>
+async function send() {
+ const url = document.getElementById('syncUrl').value
+ const addresses = Object.keys(localStorage)
+ const currentAddress = document.getElementById('input-address').value
+ const currentPrefix = `${currentAddress} `
+ const matchingAddrs = currentAddress === ''
+  ? addresses
+  : addresses.filter(x => x === currentAddress || x.startsWith(currentPrefix))
+ if (matchingAddrs.length === 0) {
+  alert('No data to send at the current address')
+  return
+ }
+ const userApproves = confirm(`You are about to send ${matchingAddrs.length} items to ${url}, continue?\n\naddresses:\n${matchingAddrs.map(bullet).join('\n')}`)
+ if (!userApproves) {
+  alert('No data was transmitted, the operation was canceled')
+  return
+ }
+ const dict = {}
+ for (const addr of matchingAddrs) {
+  const scope = { address: addr }
+  Read(scope)
+  dict[addr] = scope.value
+ }
+ const requestBody = JSON.stringify(dict)
+ const log = document.createElement('div')
+ log.classList.add('log')
+ const logs = document.getElementById('send-logs')
+ logs.firstElementChild
+  ? logs.insertBefore(log, logs.firstElementChild)
+  : logs.appendChild(log)
+ addLog(log, `http post ${url}\n\nsize: ${requestBody.length}\n\naddresses:\n${matchingAddrs.map(bullet).join('\n')}`)
+ try {
+  const response = await fetch(url, {
+   method: 'post',
+   headers: {
+    'Content-Type': 'application/json'
+   },
+   body: requestBody
+  })
+  const responseText = await response.text()
+  addLog(log, `ok: ${response.ok.toString()}, code: ${response.status}\n\nresponse: ${responseText}`)
+ }
+ catch (e) {
+  addLog(log, `${e.constructor.name}: ${e.message}`)
+ }
+}
+</script>
+<div class="app-sync">
+ <button id="help" onclick="switchTab(0)">?</button>
+ <button id="push" onclick="switchTab(1)">Send
+  <span><input id="live-push" type="checkbox"></input></span>
+</button>
+ <button id="pull" onclick="switchTab(2)">Receive
+  <span><input id="live-pull" type="checkbox"></input></span>
+ </button>
+ <div class="inputWrap">
+  <input id="syncUrl" onchange="saveSyncUrl(this)" placeholder="Enter URL to send or receive">
+ </div>
+ <button id="fullscreen" onclick="document.fullscreen ? document.exitFullscreen() : document.body.requestFullscreen()"></button>
+</div>
+<script>
+ document.getElementById('syncUrl').value = localStorage.getItem(':clips:syncUrl') ?? ''
+</script>
+<script>
+const livePull = document.getElementById("live-pull")
+const livePush = document.getElementById("live-push")
+for (const liveToggle of [livePush, livePull]) {
+  liveToggle.addEventListener('click', (e) => {
+   //e.preventDefault()
+   e.stopPropagation()
+   console.log('clicked')
+  })
+}
+</script>
+<!--
+-:. ui app-cork
+-:. cork
+-:. cork app timeline
+-->
+</body>
+<!--
+
+Build into index.html file:
+. build
+
+Jump to
+. ui app-sync receive
+. ui app-sync send
+. ui app-sync tabs theme
+. ui app-sync tabs tab help
+. ui app-sync tabs tab pull
+. ui app-sync tabs tab push
+
+Todo
+• Open ? on first visit and full screen it
+
+-->

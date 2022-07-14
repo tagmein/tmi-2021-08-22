@@ -1,0 +1,2 @@
+cd public
+npx http-server

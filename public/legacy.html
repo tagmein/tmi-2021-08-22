@@ -1,0 +1,696 @@
+
+<!-- saved from url=(0028)https://tagme.in/legacy.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <script>
+   const autoFocus = false
+   const learnKey = '::learn::'
+   const defaultKey = '::default::'
+  </script>
+ </head>
+ <body>
+  <style>
+   html,
+   body {
+    height: 100vh;
+    min-height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0;
+    flex-direction: row;
+    padding: 0;
+   }
+   body {
+    background-color: rgb(19, 19, 58);
+   }
+   body,
+   textarea,
+   button,
+   input {
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', sans-serif;
+   }
+   body,
+   body > div,
+   body > textarea,
+   body > div > *,
+   body > div > * > * {
+    display: flex;
+    box-sizing: border-box;
+    color: #fc8;
+    flex-shrink: 1;
+    flex-grow: 1;
+    font-weight: 400;
+    resize: none;
+   }
+   input,
+   textarea {
+    background-color: rgb(21, 21, 107);
+   }
+   ::selection,
+   ::-moz-selection {
+    background: rgb(118, 17, 97);
+   }
+   input:focus,
+   textarea:focus {
+    background: black;
+    outline: none;
+   }
+   .navigation {
+    flex-direction: column;
+    margin: 0;
+    min-width: 100px;
+    max-width: 250px;
+    width: 16.25vw;
+   }
+   .history {
+    flex-direction: column;
+   }
+   .sync button,
+   .sync textarea {
+    font-size: 11px;
+   }
+   .sync {
+    flex-direction: column;
+    height: 160px;
+    flex-grow: 0;
+   }
+   .syncUrl {
+    border: none;
+   }
+   .syncTools {
+    border-top: 3px solid rgb(95, 33, 100);
+    border-bottom: 3px solid rgb(95, 33, 100);
+   }
+   .syncTools button {
+    flex-grow: 1;
+    background-color: #ff99ff33;
+    border-radius: 0;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    color: #979;
+   }
+   .syncTools button:first-of-type {
+    border-right: 1.25px solid rgb(95, 33, 100);
+   }
+   .syncTools button:last-of-type {
+    border-left: 1.25px solid rgb(95, 33, 100);
+   }
+   .syncTools button:hover {
+    background-color: #ff99ff44;
+   }
+   .syncTools button:active {
+    background-color: rgb(95, 33, 100);
+   }
+   .list {
+    flex-direction: column;
+    flex-grow: 0;
+   }
+   .line {
+    padding: 6px 4px 6px;
+    flex-grow: 0;
+    white-space: nowrap;
+    cursor: pointer;
+    overflow: hidden;
+   }
+   .line:hover {
+    background: rgb(118, 17, 97);
+   }
+   .key {
+    min-width: 50%;
+    opacity: 0.5;
+    flex-grow: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+   }
+   .line:hover .key {
+    opacity: 1;
+   }
+   .contents {
+    padding-left: 24px;
+    font-size: 80%;
+    opacity: 0.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+   }
+   .term {
+    max-height: 28px;
+    padding: 6px 4px 6px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px;
+   }
+   .term:last-of-type {
+    border-bottom: 3px solid rgb(0, 80, 100);
+   }
+   .platform {
+    padding: 0;
+   }
+   .payload,
+   .spark {
+    margin: 0;
+    min-width: 250px;
+    flex-grow: 1;
+    border: none;
+    border-left: 3px solid rgb(95, 33, 100);
+    color: yellow;
+   }
+   .payload {
+    max-width: 400px;
+    padding: 2px 4px 6px;
+    line-height: 24px;
+   }
+   .sparkFrame {
+    background: #606060;
+    border: none;
+   }
+   .sparkFrame.isDefault {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+   }
+   .fullscreen {
+    right: 4px;
+   }
+   body:fullscreen .exit,
+   body:fullscreen .fullscreen {
+    display: none;
+   }
+   .exit {
+    left: 4px;
+   }
+   .exit,
+   .fullscreen {
+    padding: 2px 4px;
+    position: absolute;
+    bottom: 4px;
+    cursor: default;
+    z-index: 1;
+   }
+   .fullscreen:hover {
+    background-color: #44a;
+   }
+   .fullscreen:active {
+    background-color: #447;
+   }
+   .footer {
+    max-width: 60vw;
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    transform-origin: bottom left;
+    transform: scale(0.75);
+    opacity: 0.5;
+    transition: 0.3s ease opacity, 0.3s ease transform;
+    cursor: no-drop;
+   }
+   .footer:hover {
+    opacity: 1;
+    transform: scale(1);
+   }
+   #frame {
+    display: none !important;
+   }
+  </style>
+  <script>
+   function historyAwareSetItems(doc) {
+    let storedVersions = 0
+    for (const [k, v] of Object.entries(doc)) {
+     storedVersions += historyAwareSetItem(k, v)
+    }
+    return storedVersions
+   }
+   function historyAwareSetItem(k, v) {
+    let storedVersions = 0
+    const currentVersion = localStorage.getItem(k)
+    if (v === currentVersion) {
+     return storedVersions
+    }
+    if (typeof currentVersion === 'string') {
+     const historyRoot = '::history::'
+     const historyTimestamp = Date.now().toString(10)
+     const updatedRoot = `${
+      localStorage.getItem(historyRoot) ?? ''
+     }\n. ${historyTimestamp}`
+     localStorage.setItem(historyRoot, updatedRoot)
+ 
+     const historyTimeKey = `${historyRoot} ${historyTimestamp}`
+     const updatedHistoryTime = `${
+      localStorage.getItem(historyTimeKey) ?? ''
+     }\n. ${k}`
+     localStorage.setItem(historyTimeKey, updatedHistoryTime)
+ 
+     const historicItemKey = `${historyTimeKey} ${k}`
+     localStorage.setItem(historicItemKey, currentVersion)
+     storedVersions++
+    }
+    localStorage.setItem(k, v)
+    return storedVersions
+   }
+  </script>
+  <script>
+   if (!localStorage.getItem('home privacy')) {
+    historyAwareSetItem(
+     'home privacy',
+     `..
+ 
+ You found the Privacy Policy:
+ 
+ All entered content is stored on your device, and is not uploaded or shared with anyone`
+    )
+   }
+   if (!localStorage.getItem('home')) {
+    historyAwareSetItem(
+     'home',
+     `welcome to #tagme.in
+ 
+ to navigate around, use the <Tab> key on your keyboard
+ 
+ try it, place your cursor at the end of the following line and press <Tab>:
+ . dungeon
+ 
+ next, read or edit the privacy policy:
+ . privacy
+     `
+    )
+   }
+   if (!localStorage.getItem('home dungeon')) {
+    historyAwareSetItem(
+     'home dungeon',
+     `you are in the dungeon
+ 
+ to go back, move your cursor to the end of the next line and press <Tab>:
+ ..
+     `
+    )
+   }
+  </script>
+  <script>
+   const exit = el(document.body, 'exit')
+   function el(appendTo, cls, tagName = 'div', text, insertBefore) {
+    const e = document.createElement(tagName)
+    e.classList.add(cls)
+    if (insertBefore && appendTo.childElementCount > 0) {
+     appendTo.insertBefore(e, appendTo.childNodes[0])
+    } else {
+     appendTo.appendChild(e)
+    }
+    if (text) {
+     e.appendChild(document.createTextNode(text))
+    }
+    return e
+   }
+   function fromAnyOf(str, chars, end) {
+    const scanArea = str.substr(0, end)
+    const lastIndex = Math.max(...chars.map((x) => scanArea.lastIndexOf(x)))
+    if (lastIndex === -1) {
+     return scanArea
+    }
+    return scanArea.substr(lastIndex + 1, end - lastIndex).replace(/\}+$/, '')
+   }
+   const footer = el(document.body, 'footer')
+   footer.appendChild(
+    document.createTextNode(
+     'tagme.in ; Public Domain ; Right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.'
+    )
+   )
+   footer.addEventListener('click', () => {
+    footer.parentElement.removeChild(footer)
+   })
+   exit.innerHTML = '&times;'
+   exit.addEventListener('click', () => {
+    localStorage.removeItem(defaultKey)
+    listOne.reloadContents()
+   })
+   const fs = el(document.body, 'fullscreen')
+   fs.appendChild(document.createTextNode('Fullscreen'))
+   fs.addEventListener('click', () => {
+    if (
+     document.fullscreenElement ||
+     document.webkitFullscreenElement ||
+     document.mozFullScreenElement
+    ) {
+     document.exitFullscreen()
+    } else {
+     document.body.requestFullscreen()
+    }
+   })
+   function list(appendTo) {
+    let activeLevel = 0
+    const listAddress = []
+    const navigationElem = el(appendTo, 'navigation')
+    const listElem = el(navigationElem, 'list')
+    const historyElem = el(navigationElem, 'history')
+    const syncElem = el(navigationElem, 'sync')
+    const syncTools = el(syncElem, 'syncTools')
+    const syncUp = el(syncTools, 'syncUp', 'button')
+    const syncDown = el(syncTools, 'syncDown', 'button')
+    const syncUrl = el(syncElem, 'syncUrl', 'textarea')
+    let syncKeys = []
+ 
+    async function syncPush() {
+     try {
+      const content = {}
+      syncKeys.forEach((k) => {
+       content[k] = localStorage.getItem(k)
+      })
+      const body = JSON.stringify(content)
+      const allow = confirm(
+       `Please confirm push\n\nURI: ${syncUrl.value}\n\nSize: ${
+        body.length
+       } bytes\n\nKeys included:\n• '${syncKeys.join(
+        "'\n• '"
+       )}'\n\nPreview: ${body.substr(0, 250)}${body.length > 250 ? '...' : ''}`
+      )
+      if (!allow) {
+       alert('Push request rejected, no data sent')
+       return
+      }
+      const startTime = Date.now()
+      const response = await fetch(syncUrl.value, {
+       method: 'post',
+       body,
+       headers: {
+        'Content-Type': 'application/json',
+       },
+      })
+      const responseBody = await response.text()
+      const duration = Date.now() - startTime
+      alert(
+       `Push completed in ${duration}ms\n\n${syncUrl.value} says:\n\n${responseBody}`
+      )
+     } catch (e) {
+      alert(`Error encountered during push:\n\n${e.message}`)
+     }
+    }
+ 
+    async function syncPull() {
+     try {
+      const allow = confirm(`Should pull from ${syncUrl.value}?`)
+      if (!allow) {
+       alert('The request was not permitted')
+       return
+      }
+      const startTime = Date.now()
+      const response = await fetch(syncUrl.value)
+      const responseBody = await response.json()
+      const bodyStr = JSON.stringify(responseBody)
+      const responseKeys = Object.keys(responseBody)
+      const duration = Date.now() - startTime
+      if (responseKeys.length < 1) {
+       alert(
+        `URI: ${syncUrl.value}\n\nResults: No results available, please try again later`
+       )
+       return
+      }
+      const shouldApply = confirm(
+       `Results available. Would you like to apply them?\n\nPull completed in ${duration}ms\n\nURI: ${
+        syncUrl.value
+       }\n\nSize: ${
+        bodyStr.length
+       } bytes\n\nKeys included:\n• ${responseKeys.join(
+        '\n• '
+       )}\n\nPreview: ${bodyStr.substr(0, 250)}${
+        bodyStr.length > 250 ? '...' : ''
+       }`
+      )
+      if (!shouldApply) {
+       alert('Apply rejected, no changes were made')
+       return
+      }
+      const conflicts = historyAwareSetItems(responseBody)
+      reloadListContents()
+      alert(
+       `${responseKeys.length} changes applied. ${conflicts} item(s) moved to ::history:: and replaced by just-pulled version(s).`
+      )
+     } catch (e) {
+      alert(`Error encountered during pull:\n\n${e.message}`)
+     }
+    }
+ 
+    syncUp.addEventListener('click', syncPush)
+    syncDown.addEventListener('click', syncPull)
+    syncUrl.value = localStorage.getItem('::sync::') ?? ''
+    syncUrl.addEventListener('keyup', () => {
+     historyAwareSetItem('::sync::', syncUrl.value)
+     reloadSync()
+    })
+    syncUrl.setAttribute(
+     'placeholder',
+     'Enter sync URL, i.e. https://example.com/sync'
+    )
+    function reloadSync() {
+     const k = key()
+     const kSpace = `${k} `
+     syncKeys = Object.keys(localStorage).filter(
+      (x) => x === k || x.startsWith(kSpace)
+     )
+     if (syncUrl.value.length > 0) {
+      syncDown.innerText = 'Pull'
+      syncUp.innerText = `Push ${syncKeys.length} to '${k}'`
+     } else {
+      syncDown.innerText = 'No pull url'
+      syncUp.innerText = 'No push url'
+     }
+    }
+    const platformElem = el(appendTo, 'platform')
+    const payloadElem = el(platformElem, 'payload', 'textarea')
+    const sparkElem = el(platformElem, 'spark')
+ 
+    function resolveKey(context, k) {
+     const resolved = k.split(' ').reduce((addr, x) => {
+      switch (x) {
+       case '.':
+        return addr.concat(context)
+       case '..':
+        return addr.concat(context.slice(0, context.length - 1))
+       case '...':
+        return addr.concat(context.slice(0, context.length - 2))
+       default:
+        return addr.concat(x)
+      }
+     }, [])
+     return resolved
+    }
+    function key() {
+     return listAddress
+      .filter((x) => x !== '')
+      .map((x) => x.trim())
+      .join(' ')
+    }
+    const historyItems = {}
+    function historyEntry(key, contents) {
+     if (key in historyItems && historyItems[key]) {
+      historyElem.removeChild(historyItems[key])
+     }
+     const p = (historyItems[key] = el(
+      historyElem,
+      'line',
+      undefined,
+      undefined,
+      true
+     ))
+     el(p, 'key', 'span', key)
+     el(p, 'contents', 'span', contents)
+     p.addEventListener('click', () => {
+      navigate(listTools, key.split(' '))
+     })
+     if (historyElem.childElementCount > 100) {
+      historyElem.removeChild(
+       historyElem.childNodes[historyElem.childNodes.length - 1]
+      )
+     }
+    }
+    payloadElem.addEventListener('keyup', () => {
+     const k = key()
+     if (k === learnKey) {
+      newItems = Object.entries(JSON.parse(payloadElem.value))
+      for (const [iK, iV] of newItems) {
+       historyAwareSetItem(iK, iV)
+      }
+      alert(`Learned ${newItems.length} items`)
+     } else {
+      historyAwareSetItem(k, payloadElem.value)
+      reloadSpark(k, payloadElem.value)
+      reloadSync()
+     }
+    })
+    payloadElem.addEventListener('keydown', (event) => {
+     switch (event.key) {
+      case 'Tab':
+       event.preventDefault()
+       const selectionLength =
+        payloadElem.selectionEnd - payloadElem.selectionStart
+       const goTo =
+        selectionLength === 0
+         ? fromAnyOf(payloadElem.value, ['\n', '{'], payloadElem.selectionStart)
+         : payloadElem.value.substr(payloadElem.selectionStart, selectionLength)
+       navigate(listOne, resolveKey(listAddress, goTo), event.shiftKey)
+       listElem.lastElementChild.focus()
+       listElem.lastElementChild.select()
+       break
+     }
+    })
+    function reloadListContents() {
+     const k = key()
+     if (k === learnKey) {
+      payloadElem.value = JSON.stringify({ ...localStorage })
+      return
+     }
+     const contents = localStorage.getItem(k)
+     const safeContents = (payloadElem.value =
+      typeof contents === 'string' ? contents : '')
+     historyAwareSetItem(':last-visited-key', k)
+     if (typeof contents === 'string') {
+      historyEntry(k, contents.substr(0, 100))
+     }
+     reloadSpark(k, safeContents)
+     reloadSync()
+    }
+    function reloadSpark(k, contents) {
+     for (const node of sparkElem.childNodes) {
+      sparkElem.removeChild(node)
+     }
+     function replace(text, context, safety = 100) {
+      if (safety < 1) {
+       return `[>= 100 replacements, possible infinite loop]${text}`
+      }
+      return text.replace(/{{([^}]+)}}/g, (a, k) => {
+       if (k.startsWith('[') && k.endsWith(']')) {
+        return `{{${k.substr(1, k.length - 2)}}}`
+       }
+       const newContext = resolveKey(context, k)
+       const val = localStorage.getItem(newContext.join(' '))
+       return typeof val === 'string'
+        ? replace(val, newContext, safety - 1)
+        : `{not found: ${k}}`
+      })
+     }
+     const newFrame = el(sparkElem, 'sparkFrame', 'iframe')
+     const defaultApp = localStorage.getItem(defaultKey)
+     if (k === defaultApp) {
+      newFrame.classList.add('isDefault')
+      exit.style.display = 'block'
+     } else {
+      exit.style.display = 'none'
+     }
+     newFrame.contentDocument.open()
+     newFrame.contentDocument.write(
+      window === top || window.parent === top
+       ? replace(contents, listAddress)
+       : '<style>body {color: green;}</style>nested'
+     )
+     newFrame.contentDocument.close()
+    }
+    const listTools = {
+     chop(afterIndex) {
+      listAddress.splice(afterIndex + 1, Infinity)
+      while (listElem.childNodes.length > afterIndex + 1) {
+       listElem.removeChild(listElem.childNodes[afterIndex + 1])
+      }
+     },
+     clear() {
+      listAddress.splice(0, Infinity)
+      listElem.innerHTML = ''
+     },
+     reloadContents() {
+      reloadListContents()
+     },
+     dig(initialValue) {
+      const termIndex = listElem.childElementCount
+      const termElem = el(listElem, 'term', 'input')
+      termElem.value = initialValue
+      listAddress[termIndex] = initialValue
+      reloadListContents()
+      termElem.addEventListener('mouseover', () => {
+       termElem.focus()
+       termElem.select()
+      })
+      termElem.addEventListener('keyup', () => {
+       listAddress[termIndex] = termElem.value
+       reloadListContents()
+      })
+      termElem.addEventListener('keydown', (event) => {
+       switch (event.key) {
+        case ' ':
+         event.preventDefault()
+         const spaceIndex = termElem.value.indexOf(' ')
+         listOne.dig(spaceIndex !== -1 ? termElem.value.splice(spaceIndex) : '')
+         if (spaceIndex !== -1) {
+          termElem.value = termElem.value.slice(0, spaceIndex)
+         }
+         break
+        case 'Tab':
+         event.preventDefault()
+         listOne.chop(termIndex)
+         break
+        case 'ArrowUp':
+         termElem.previousElementSibling?.focus()
+         break
+        case 'ArrowDown':
+         termElem.nextElementSibling?.focus()
+         break
+        case 'Backspace':
+         if (termElem.value === '' && listElem.childElementCount > 1) {
+          const sib =
+           termElem.nextElementSibling ?? termElem.previousElementSibling
+          termElem.parentElement.removeChild(termElem)
+          listAddress.splice(termIndex, 1)
+          reloadListContents()
+          event.preventDefault()
+          if (sib) {
+           sib.focus()
+          }
+         }
+         break
+        case 'Enter':
+         const newTerm = listTools.dig('')
+         reloadListContents()
+         newTerm.focus()
+         break
+       }
+      })
+      activeLevel++
+      autoFocus && termElem.focus()
+      return termElem
+     },
+    }
+    return listTools
+   }
+   const listOne = list(document.body)
+   function navigate(theList, to, append = false) {
+    if (!append) {
+     theList.clear()
+    }
+    for (const segment of to) {
+     theList.dig(segment)
+    }
+   }
+   const lastVisited = localStorage.getItem(':last-visited-key')
+   navigate(
+    listOne,
+    typeof lastVisited === 'string' ? lastVisited.split(' ') : ['home']
+   )
+  </script><div class="exit" style="display: none;">×</div><div class="footer">tagme.in ; Public Domain ; Right click and select "View Page Source" or "View Source" in your browser. Click to dismiss.</div><div class="fullscreen">Fullscreen</div><div class="navigation"><div class="list"><input class="term"></div><div class="history"><div class="line"><span class="key"></span><span class="contents">:common error
+:now
+:mui sticky
+:common directory
+CAMP
+two
+sync.ts
+clips
+tape
+pbook
+grid
+alpha
+
+Inbox</span></div></div><div class="sync"><div class="syncTools"><button class="syncUp">Push 6 to ''</button><button class="syncDown">Pull</button></div><textarea class="syncUrl" placeholder="Enter sync URL, i.e. https://example.com/sync"></textarea></div></div><div class="platform"><textarea class="payload"></textarea><div class="spark"><iframe class="sparkFrame" src="./legacy_files/saved_resource.html"></iframe></div></div>
+ 
+ </body></html>

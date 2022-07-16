@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+ <head>
+  <title>Mirror.js</title>
+  <style>
+   body {
+    padding: 2em 5em;
+    background-color: #252525;
+    white-space: initial;
+   }
+   body > * {
+    margin: 5em 0;
+    white-space: pre-wrap;
+   }
+   body, input, textarea, select, button {
+    color: #f0b000;
+    letter-spacing: 0.15em;
+    font-family: monospace;
+    line-height: 2.2em
+   }
+   h4 {
+    margin-bottom: 0;
+   }
+   h4 + * {
+    margin-top: 1em;
+   }
+   p:before {
+    height: 0.38em;
+    width: 1.52em;
+    left: -1.52em;
+    bottom: -1.52em;
+   }
+   p:after {
+    width: 0.38em;
+    height: 1.52em;
+    left: -1.52em;
+    bottom: -0.1.52em;
+   }
+   p:after, p:before {
+    content: '';
+    display: block;
+    position: absolute;
+    background-color: #393939;
+   }
+   span {
+    padding: 0.38em;
+    display: inline-block;
+    background-color: #f0b000;
+    color: #000;
+    mix-blend-mode: difference;
+    margin: 0.38em;
+   }
+   textarea, code {
+    padding: 2.2em;
+    display: inline-block;
+    background-color: #393939;
+    border-radius: 0.38em;
+    mix-blend-mode: difference;
+    box-shadow: 0 0 2px 2px #5f5f5f;
+   }
+   *::selection {
+    background-color: #5f5f5f;
+    color: #fff;
+   }
+   *:focus {
+    box-shadow: inset 0 0 2px 2px #5f5f5f;
+   }
+   textarea {
+    height: 60em;
+    width: 60em;
+   }
+  </style>
+  <script>
+   const cell = init => (me={}) =>
+ Object.assign(me, init?.(me))
+  .boot?.() ?? me
+   
+   const events = (element, fns) => {
+    for (const [k, v] of Object.entries(fns)) {
+     element.addEventListener(k, v)
+    }
+   }
+   
+   const ScrollMemory = cell(me => ({
+    key: '#scrollMemory.position',
+    get() {
+     const data = localStorage.getItem(me.key)
+     if (data) {
+      return JSON.parse(data)
+     }
+     return {}
+    },
+    setFrom(element) {
+     return () => {
+      const { scrollTop, scrollLeft } = element
+      localStorage.setItem(
+       me.key,
+       JSON.stringify({ scrollTop, scrollLeft })
+      )
+     }
+    },
+    observeElement(element) {
+     window.addEventListener(
+      'scroll',
+      me.setFrom(element)
+     )
+    },
+    restorePosition(element) {
+     Object.assign(element, me.get())
+    }
+   }))
+   const Collator = cell(me => ({
+    collate(source, accumulator) {
+     Array.from(source).forEach(accumulator)
+    }
+   }))
+  </script>
+ </head>
+ <body>
+  <h1>Mir<span>ror</span>.js</h1>
+  <p>A set of utilities to simplify the creation of interactive applications written in JavaScript</p>
+  <textarea readonly id="MirrorJS"></textarea>
+  <h2><span>ce</span>ll</h2>
+  <p>The cell is an abstraction that unifies the structure of an entire codebase. It takes inspiration from biology, there are many types of cells in a body, but they each descended from a common form. So too, when writing sofware, we may unify the format of the code we write in order to focus one's attention on the goal rather than style.</p>
+  <h4>Thesis</h4>
+  <p>The more predictable the structure of all code in a codebase, the easier on the mind it is to assemble complex structures from the various elements</p>
+  <h4>Purpose</h4>
+  <p>Reduce cognitive overhead of writing code</p>
+  <h4>Code</h4>
+  <pre><code class="source">const cell = init => (me={}) =>
+ Object.assign(me, init?.(me))
+  .boot?.() ?? me</code></pre>
+  <h4>Example</h4>
+  <pre><code>const Counter = cell(cell => ({
+ value: 0,
+ increment() {
+  cell.value++
+ }
+}))
+
+const hits = Counter({ value: 20 })
+
+hits.increment()
+// hits.value is now 21
+</code></pre>
+  <h2><span>ev</span>ents</h2>
+  <p>events makes attaching event listeners easier on the eyes</p>
+  <h4>Purpose</h4>
+  <p>Add event listeners to DOM elements</p>
+  <h4>Code</h4>
+  <pre><code class="source">const events = (element, fns) =>
+ Object.entries(fns)
+  .map(([k, v]) => element.addEventListener(k, v))
+</code></pre>  <h4>Example</h4>
+  <pre><code>events(element, {
+ click() {
+  // do something on click
+ },
+ keydown(e) {
+  // do something on key down
+ }
+})
+</code></pre>
+  <script>
+   const scrollMem = ScrollMemory()
+   scrollMem.observeElement(document.body)
+   scrollMem.restorePosition(document.body)
+
+   const MirrorJS = document.getElementById('MirrorJS')
+   events(MirrorJS, {
+    focus() { MirrorJS.select() }
+   })
+
+   const collator = Collator()
+   collator.collate(
+    document.getElementsByClassName('source'),
+    x => MirrorJS.value += x.innerText + '\n\n'
+   )
+  </script>
+ </body>
+</html>

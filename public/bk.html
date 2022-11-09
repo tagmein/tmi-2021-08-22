@@ -1,0 +1,186 @@
+<!doctype html>
+<head>
+<title>bk</title>
+<style>
+ body, html {
+  height: 100vh;
+  margin: 0;
+  background-color: #000;
+  overflow: hidden;
+ }
+ canvas, #board {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+ }
+ canvas { 
+  opacity: 0.5;
+ }
+ #board {
+  z-index: 1;
+ }
+</style>
+</head>
+<body>
+<script>
+ const FPS = 60
+ const All = [0, 1, 2, 3].map(
+  () => document.createElement('canvas')
+ ).map(x => {
+  document.body.appendChild(x)
+  return x
+ })
+ const [
+  BACK,
+  MID,
+  TOP,
+  LIGHT
+ ] = All.map(x => x.getContext('2d'))
+ const A = [
+  'b00', // Red
+  'd80', // Orange
+  'ff0', // Yellow
+  '8d0', // Lime
+  '0b0', // Green
+  '0b8', // Bluish green
+  '0bf', // Cyan
+  '08f', // Greenish blue
+  '00f', // Blue
+  '50f', // Violet
+  '80f', // Magenta
+  'b5f', // Pink
+ ].map(s => s.split('').map(x => `${x}${x}`).join(''))
+ const RAYS = A.length * 2
+ let time = 0
+ function source(l, t) {
+  LIGHT.lineWidth = 2
+  const rotate = 4 * Math.PI * time / (600e3 / FPS)
+  for (const _i in Array(RAYS).fill()) {
+   const i = RAYS - 1 - ((1 * _i + time) % RAYS)
+   const [ eL, eT ] = ['cos', 'sin'].map(o =>
+    raydius * Math[o](2 * i * Math.PI / RAYS + rotate)
+   )
+   LIGHT.strokeStyle = eT >= 0
+    ? '#' + A[i % A.length] + 'ff'
+    : '#ffffff0f'
+   LIGHT.beginPath()
+   const frac = 1 / 1000
+   LIGHT.moveTo(l + frac * eL, t + frac * eT)
+   LIGHT.lineTo(l + eL, t + eT)
+   LIGHT.stroke()
+  }
+ }
+
+ let drawTime 
+ function draw() {
+  clearTimeout(drawTime)
+  time = 0
+  for (const i in Array(208).fill()) {
+   LIGHT.fillStyle = '#19191912'
+   LIGHT.fillRect(0, 0, All[0].width, All[0].height)
+   source(All[0].width / 2, All[0].height / 2)
+   time++
+  }
+ }
+ 
+ let raydius = 10
+ function resize() {
+  const s = {
+   height: window.innerHeight,
+   width: window.innerWidth,
+  }
+  raydius = Math.sqrt(Math.pow(s.height, 2) +
+                      Math.pow(s.width, 2))
+  for (const c of All) {
+   Object.assign(c, s)
+  }
+  draw()
+ }
+ resize()
+ let resizeTimeout
+ function resizeSoon() {
+  clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(resize, 200)
+ }
+ window.addEventListener('resize', resizeSoon)
+</script>
+<style>
+ article {
+  position: absolute;
+  top: 60px;
+  left: 60px;
+  padding: 2px 1px 3px 2px;
+  border-radius: 100px;
+  border: 1px solid #00000052;
+  box-shadow: inset 1px 1px 4px 0 #ffffff32, inset -1px -1px 4px 0 #000;
+  background-color: #727272ef;
+  color: #ffffffef;
+  text-shadow: -1px -1px 2px #afafaf, 1px 1px 2px #202020;
+  height: 66px;
+  width: 66px;
+  font-size: 36px;
+  line-height: 42px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transform-origin: center;
+  transform: translate(-50%, -50%);
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  text-align: center;
+ }
+ article:hover {
+  box-shadow: 0 0 8px 2px #ffffff32;
+  overflow: visible;
+  background-color: #afafafef;
+ }
+ article[text-length-gte-3] {
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: 0.75px;
+ }
+ article[text-length-gte-8] {
+  font-size: 9px;
+  line-height: 12px;
+  letter-spacing: 1px;
+ }
+ label {
+  position: absolute;
+  bottom: 100%;
+ }
+</style>
+<div id="board">
+ <article>1</article>
+ <article>+</article>
+ <article>2</article>
+ <article>+</article>
+ <article>3</article>
+ <article>=</article>
+ <article>6</article>
+ <article text-length-gte-3>365</article>
+ <article>12</article>
+ <article>0</article>
+ <article text-length-gte-3>Inbox</article>
+ <article text-length-gte-3 text-length-gte-8>Help center</article>
+</div>
+<script>
+ function randPx(x) {
+  return Math.random() * x + 'px'
+ }
+ for (const a of Array.from(
+  document.getElementsByTagName('article')
+ )) {
+  const { innerWidth: w, innerHeight: h } = window
+  Object.assign(a.style, { top: randPx(h), left: randPx(w) })
+ // todo dragAndDrop(a) 
+ }
+</script>
+</body>

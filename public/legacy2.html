@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+ <head>
+  <title>TagMe.in</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+   body {
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #113;
+    color: #bba;
+    max-width: 36em;
+    margin: 0 auto;
+    padding: 1em;
+    font-size: 18px;
+    line-height: 1.85em;
+    box-sizing: border-box;
+   }
+   h1 {
+    font-size: 54px;
+    text-align: center;
+    margin: 1em 0;
+   }
+   h2 {
+    padding: 1em 0 0.25em;
+   }
+   a {
+    color: inherit;
+   }
+   section, summary {
+    position: relative;
+   }
+   summary {
+    cursor: pointer;
+    padding-left: 1em;
+    margin: 1em 0;
+    border-radius: 1em;
+   }
+   summary:hover {
+    background-color: #393939;
+   }
+   label {
+    position: absolute;
+    bottom: 0;
+    right: 100%;
+    color: #797979;
+    white-space: nowrap;
+    padding-right: 2.5em;
+   }
+   h3 {
+    margin: 0;
+    display: inline-block;
+    padding: 0 0 0 1em;
+    max-width: 80%;
+    font-size: inherit;
+    font-weight: normal;
+   }
+   summary:before {
+    content: '';
+    display: block;
+    height: 1em;
+    width: 1em;
+    background-color: #000000a9;
+    border-radius: 1em;
+    position: absolute;
+    bottom: 0.33em;
+    border: 1px solid transparent;
+    left: 0.67em;
+   }
+   ul {
+    padding: 0 0 1em 1.125em;
+   }
+   #guide {
+    padding: 0.5em 0 0.5em 4em;
+    border-radius: 1em;
+    background-color: black;
+    margin: 0 auto;
+    position: relative;
+   }
+   em em { font-style: normal; font-weight: normal; }
+  </style>
+ </head>
+ <body>
+  <h1>Tag Me In</h1>
+  <h2><em>&ldquo;It is <em>my</em> job to improve the world&rdquo;</em></h2>
+  <p>The goal of <a href="https://tagme.in">TagMe.in</a> is to gather all those willing to make the world a better place,
+   and give them (us, each other) the tools to network as a species as we undertake this never-ending task</p>
+  <h2>How to Play</h2>
+  <p>This guide is maintained by <a href="https://nateferrero.com">Nate Ferrero</a>,
+   I accept feedback, suggestions, and contributions</p>
+   <p>To contribute changes to the guide:</p>
+   <ol>
+    <li>
+     <a download id="guide-json" href="./Website+0-2-3+1657998144881.json">Download the guide</a> as JSON
+    </li>
+    <li>Import into <a href="https://listmanager.dev">List Manager</a></li>
+    <li>Make any changes you'd like to</li>
+    <li>Export and email to <a href="mailto:nate@tagme.in">nate@tagme.in</a></li>
+   </ol>
+  <div id="guide">
+   <noscript>JavaScript is required to view this content</noscript>
+  </div>
+  <p style="margin: 2em; text-align: center; font-size: 16px;">
+   Are you looking for the TagMe.in <a href="./tagme.html">HTML editor</a>?
+  </p>
+  <script>
+   function isTerminal(data, prefix) {
+    return keysWithPrefix(data, prefix).length === 0
+   }
+   function keysWithPrefix(data, prefix) {
+    return Object.keys(data).filter(
+     k => k.startsWith(prefix) && !k.slice(prefix.length).includes(' ')
+    ).sort(
+     (a, b) =>
+      parseInt(a.slice(prefix.length).split(' ')[0], 10)
+      - parseInt(b.slice(prefix.length).split(' ')[0], 10)
+    )
+   }
+   function viewList(data, prefix='') {
+    const address = document.createElement('label')
+    const title = document.createElement('h3')
+    const list = document.createElement('ul')
+    const container = document.createElement('section')
+    const details = document.createElement('details')
+    const summary = document.createElement('summary')
+    address.innerText = prefix
+    title.innerText = data[prefix.slice(0, prefix.length - 1)]
+    if (isTerminal(data, prefix)) {
+     container.appendChild(address)
+     container.appendChild(title)
+     return container
+    }
+    container.appendChild(details)
+    details.appendChild(summary)
+    summary.appendChild(address)
+    summary.appendChild(title)
+    details.appendChild(summary)
+    details.appendChild(list)
+    for (const k of keysWithPrefix(data, prefix)) {
+     list.appendChild(viewList(data, `${k} `))
+    }
+    const key = prefix + '#open'
+    details.addEventListener('click', e => {
+     localStorage.setItem(key, details.open ? '0' : '1')
+    })
+    const current = localStorage.getItem(key)
+    if (current === '1') {
+     details.open = true
+    }
+    return container
+   }
+   async function main() {
+    const guide = document.getElementById('guide')
+    const response = await fetch(
+     document.getElementById('guide-json').href
+    )
+    if (response.ok) {
+     const fs = document.createElement('button')
+     fs.innerText = 'Fullscreen'
+     Object.assign(fs.style, {
+      position: 'absolute',
+      top: '1em',
+      right: '1em',
+      opacity: 0.75,
+      zIndex: 1,
+      padding: '0.5em',
+      border: 'none',
+      borderRadius: '0.5em',
+      color: '#bba',
+      backgroundColor: '#444'
+     })
+     fs.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+       document.exitFullscreen()
+      }
+      else {
+       guide.requestFullscreen()
+      }
+     })
+     guide.appendChild(fs)
+     const TagMeInWebsite = await response.json()
+     for (const k of keysWithPrefix(TagMeInWebsite, '')) {
+      guide.appendChild(viewList(TagMeInWebsite, `${k} `))
+     }
+    }
+    else {
+     guide.innerText = 'Error loading content'
+    }
+   }
+   main().then()
+  </script>
+ </body>
+</html>

@@ -449,10 +449,16 @@
   toolbar(document.getElementById('first'))
   Array.from(document.getElementsByTagName('h1'))
    .map(cell)
-  document.body.addEventListener('mouseover', e => {
-   if (e.target.tagName.startsWith('H')) {
-    toolbar(e.target)
+  e => {
+   let { target } = e
+   while (target && !target.tagName.startsWith('H')) {
+    target = target.parentElement
    }
-  })
+   if (target.tagName.startsWith('H')) {
+    toolbar(target)
+   }
+  }
+  document.body.addEventListener('mouseover', attachToolbar)
+  document.body.addEventListener('click', attachToolbar)
  </script>
 </body>

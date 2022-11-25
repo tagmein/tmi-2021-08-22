@@ -1,6 +1,8 @@
 <!doctype html>
 
 <head>
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <meta charset="UTF-8">
  <title>Tag Me In</title>
  <style>
   @font-face {
@@ -372,8 +374,8 @@
      const previously = localStorage.getItem(h.address.value)
      localStorage.removeItem(h.address.value)
      // alert(`Erased '${h.address.value}', was previously: ${previously}`)
+     COMMAND.CLOSE(h)
     }
-    COMMAND.CLOSE(h)
    },
    async MOVE(h) {
     const answer = await dialog(`Enter address to move '${h.address.value}' to`, true, 'Cancel', 'Save')
@@ -411,7 +413,7 @@
     content.innerText = localStorage.getItem(address.value) ?? 'Tag Me In'
     container.style.backgroundColor = 'transparent'
    }
-   function debounce(fn, time=500) {
+   function debounce(fn, time = 500) {
     let timer
     return function () {
      clearTimeout(timer)

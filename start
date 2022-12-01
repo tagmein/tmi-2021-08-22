@@ -1,2 +1,1 @@
-cd public
-npx http-server
+./node_modules/.bin/http-server public

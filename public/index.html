@@ -5,6 +5,19 @@
  <meta charset="UTF-8">
  <title>Tag Me In</title>
  <style>
+  /*
+
+
+    CCCCCCC   SSSSSSS    SSSSSSS   
+   CC        SS     SS  SS     SS  
+  CC         SS         SS         
+  CC          SSSSSSS    SSSSSSS   
+  CC                SS         SS  
+   CC        SS     SS  SS     SS  
+    CCCCCCC   SSSSSSS    SSSSSSS   
+
+    
+  */
   @font-face {
    font-family: "DejaVu Sans Mono";
    font-style: normal;
@@ -39,9 +52,13 @@
 
   body {
    height: 100vh;
-   background-color: #113;
-   color: #bba;
+   background-color: #210;
+   color: #def;
    flex-direction: row;
+  }
+
+  body[data-dialog="open"] section {
+   display: none;
   }
 
   body,
@@ -58,8 +75,8 @@
   section {
    display: flex;
    overflow: hidden;
-   border-left: 1px solid #887;
-   border-right: 1px solid #887;
+   border-left: 1px solid #552;
+   border-right: 1px solid #552;
   }
 
   section {
@@ -85,12 +102,11 @@
    font-weight: 500;
    margin: 0;
    padding: 0;
-   text-shadow: 0 0 0.5px #bba, 0 0 0.5px #bba;
   }
 
   *::selection {
-   color: #fff;
-   background-color: #887;
+   color: #000;
+   background-color: #fff;
   }
 
   h1,
@@ -100,7 +116,7 @@
   h5,
   h6 {
    padding: 36px 16px;
-   border-bottom: 2px solid #887;
+   border-bottom: 2px solid #552;
    margin: 0;
    position: relative;
    display: flex;
@@ -119,7 +135,7 @@
    overflow-y: hidden;
    overflow-x: auto;
    white-space: pre;
-   display: flex;
+   display: none;
    flex-direction: row;
   }
 
@@ -127,8 +143,17 @@
    opacity: 1;
   }
 
+  h1:focus main,
+  h2:focus main,
+  h3:focus main,
+  h4:focus main,
+  h5:focus main,
+  h6:focus main {
+   display: flex;
+  }
+
   button {
-   color: #fff;
+   color: #def;
    border: none;
    margin: 0;
    padding: 8px;
@@ -144,12 +169,12 @@
   }
 
   button:hover {
-   color: #000;
-   background-color: #887;
+   color: #678;
+   background-color: #def;
   }
 
   button:active {
-   color: #000;
+   color: #aaa;
    background-color: #665;
   }
 
@@ -159,7 +184,7 @@
    top: 0;
    padding: 8px 16px;
    font-size: 16px;
-   color: #bba;
+   color: #def;
    background-color: transparent;
    width: 50%;
    overflow: hidden;
@@ -179,7 +204,7 @@
 
   *:focus {
    outline: none;
-   box-shadow: inset 0 0 0 2px #bba;
+   box-shadow: inset 0 0 0 2px #def;
   }
 
   span {
@@ -214,24 +239,20 @@
    width: 100%;
    height: 50%;
    font-size: 200%;
-   opacity: 0.7;
+   opacity: 0.75;
   }
 
   .dialog button:first-of-type {
-   background-color: #533;
+   background-color: #422;
    color: #f66;
   }
 
   .dialog button:last-of-type {
-   background-color: #353;
+   background-color: #242;
    color: #6f6;
   }
 
-  .dialog button:first-of-type:hover {
-   opacity: 1;
-  }
-
-  .dialog button:last-of-type:hover {
+  .dialog button:hover {
    opacity: 1;
   }
 
@@ -268,9 +289,9 @@
    border-radius: 2vh;
   }
 
-  *:focus {
-   outline: none;
-   box-shadow: inset 0 0 0 2px #c9c9c9;
+  input::placeholder,
+  input::-moz-placeholder {
+   color: #c8c8c8;
   }
 
   aside {
@@ -280,8 +301,51 @@
    margin: 0.175em 0 -0.175em;
    transition: height 0.5s linear;
   }
+
+  u {
+   text-decoration: none;
+   position: relative;
+   font-weight: inherit;
+  }
+
+  u::after {
+   display: block;
+   border-top: 2px solid;
+   position: absolute;
+   bottom: -1px;
+   left: 0;
+   right: 0;
+   content: '';
+   height: 0;
+  }
+
+  button label {
+   background-color: #ffffff12;
+   border-radius: 1em;
+   color: #ffffff79;
+   cursor: inherit;
+   display: inline-block;
+   font-size: 50%;
+   font-weight: bold;
+   margin-top: 1em;
+   padding: 1em;
+   text-transform: none;
+  }
  </style>
 </head>
+<!--
+
+
+  H       H  TTTTTTTTT  M       M  L
+  H       H      T      MM     MM  L
+  H       H      T      M M   M M  L
+  HHHHHHHHH      T      M  M M  M  L
+  H       H      T      M   M   M  L
+  H       H      T      M       M  L
+  H       H      T      M       M  LLLLLLLLL
+
+
+ -->
 
 <body>
  <section>
@@ -291,30 +355,52 @@
   <h1></h1>
  </section>
  <main id="toolbar">
-  <button>Open</button>
-  <button>Close</button>
-  <button>Edit</button>
-  <button>Erase</button>
-  <button>Move</button>
-  <button>Run</button>
+  <button><u>C</u>lose</button>
+  <button><u>D</u>elete</button>
+  <button><u>E</u>dit</button>
+  <button><u>M</u>ove</button>
+  <button><u>N</u>ew</button>
+  <button><u>O</u>pen</button>
+  <button><u>R</u>un</button>
+  <button title="Move up (Shift + Up Arrow)"><u>⮝</u></button>
+  <button title="Move up (Shift + Down Arrow)"><u>⮟</u></button>
   <!--button>Pick</button>
   <button>Drop</button-->
  </main>
  <div class="dialog" id="dialog-wrap">
-  <button id="dialog-no">No</button>
+  <button id="dialog-no">
+   <div id="dialog-noLabel">No</div>
+   <label>Esc</label>
+  </button>
   <article>
-   <blockquote id="dialog-question">Would you like to continue?</blockquote>
+   <blockquote id="dialog-question">
+    Would you like to continue?
+   </blockquote>
    <input id="dialog-response" />
   </article>
-  <button id="dialog-yes">Yes</button>
+  <button id="dialog-yes">
+   <div id="dialog-yesLabel">Yes</div>
+   <label>Enter</label>
+  </button>
  </div>
  <script>
+  /*
+
+
+  JJJJJJJJJ   SSSSSSS 
+      J      SS     SS
+      J      SS       
+      J       SSSSSSS 
+      J             SS
+  J   J      SS     SS
+   JJJ        SSSSSSS 
+
+
+   */
   function zygote(config) {
    const me = { config }
    return me
   }
- </script>
- <script>
   function getByIds(prefix, ...ids) {
    const result = {}
    for (const id of ids) {
@@ -323,40 +409,78 @@
    return result
   }
   let onNo, onYes
-  const dialogElements = getByIds('dialog-', 'wrap', 'no', 'yes', 'question', 'response')
+  const dialogElements = getByIds('dialog-', 'wrap', 'no', 'yes', 'noLabel', 'yesLabel', 'question', 'response')
   function closeDialog() {
+   document.body.setAttribute('data-dialog', 'closed')
    dialogElements.wrap.style.display = 'none'
+   lastFocusedCellContainer?.focus()
   }
-  dialogElements.no.addEventListener('click', async () => {
+  async function NoHandler() {
    await new Promise(r => setTimeout(r, 150))
    onNo?.()
    closeDialog()
-  })
-  dialogElements.yes.addEventListener('click', async () => {
+  }
+  async function YesHandler() {
    await new Promise(r => setTimeout(r, 150))
    onYes?.()
    closeDialog()
+  }
+  dialogElements.no.addEventListener('click', NoHandler)
+  dialogElements.yes.addEventListener('click', YesHandler)
+  window.addEventListener('keydown', e => {
+   if (document.body.getAttribute('data-dialog') === 'open') {
+    switch (e.key) {
+     case 'Escape':
+      NoHandler()
+      break
+     case 'Enter':
+      YesHandler()
+      break
+    }
+   }
   })
-
   async function dialog(question, hasInput = false, no = 'NO', yes = 'YES', previously) {
+   document.body.setAttribute('data-dialog', 'open')
    dialogElements.wrap.style.display = 'flex'
    dialogElements.question.innerText = question
-   dialogElements.no.innerText = no
-   dialogElements.yes.innerText = yes
+   dialogElements.noLabel.innerText = no
+   dialogElements.yesLabel.innerText = yes
    dialogElements.response.style.display = hasInput ? 'inline-block' : 'none'
    dialogElements.response.value = typeof previously === 'string' ? previously : ''
+   dialogElements.response.focus()
+   dialogElements.response.select()
    return new Promise(r => {
     onNo = r.bind(undefined, false)
     onYes = () => r(hasInput ? dialogElements.response.value : true)
    })
   }
+  async function newCell(referenceElement, address = '', insertAfter = false) {
+   const { container } = await cell(document.createElement('h1'), address)
+   if (insertAfter) {
+    const nextSibling = referenceElement.nextElementSibling
+    if (nextSibling) {
+     referenceElement.parentElement.insertBefore(container, nextSibling)
+    }
+    else {
+     referenceElement.parentElement.appendChild(container)
+    }
+   }
+   else {
+    referenceElement.appendChild(container)
+   }
+   toolbar(container)
+  }
   const COMMAND = {
    async CLOSE(h) {
     const section = h.container.parentElement
+    const previous = getPrevious(h.container)
     h.close()
     if (section.childElementCount === 0) {
      await new Promise(r => setTimeout(r, 500))
-     section.appendChild((await cell(document.createElement('h1'))).container)
+     await newCell(section)
+    }
+    else {
+     previous.focus()
     }
    },
    async EDIT(h) {
@@ -365,33 +489,68 @@
     if (answer !== false) {
      localStorage.setItem(h.address.value, answer)
      await h.openAddress()
-     // alert(`Saved '${h.address.value}', was previously: ${previously}`)
+     console.info(`Saved '${h.address.value}', was previously: ${previously}`)
     }
    },
-   async ERASE(h) {
-    const answer = await dialog(`Are you sure you want to erase '${h.address.value}'?`, false, 'Cancel', 'Erase')
+   async DELETE(h) {
+    const previously = localStorage.getItem(h.address.value) ?? ''
+    const answer = await dialog(`Are you sure you want to delete '${h.address.value}' (${previously.length} bytes)?`, false, 'Cancel', 'Delete')
     if (answer) {
-     const previously = localStorage.getItem(h.address.value)
      localStorage.removeItem(h.address.value)
-     // alert(`Erased '${h.address.value}', was previously: ${previously}`)
+     console.info(`Deleted '${h.address.value}', was previously: ${previously}`)
      COMMAND.CLOSE(h)
     }
    },
    async MOVE(h) {
-    const answer = await dialog(`Enter address to move '${h.address.value}' to`, true, 'Cancel', 'Save')
-    console.log({ answer, message: 'not implemented' })
+    const answer = await dialog(`Enter address to move '${h.address.value}' to`, true, 'Cancel', 'Save', h.address.value)
+    if (typeof answer === 'string') {
+     const previously = localStorage.getItem(h.address.value)
+     const valueAtNewAddress = localStorage.getItem(answer)
+     if (valueAtNewAddress !== null) {
+      const overwrite = await dialog(
+       `Move destination '${answer}' already has a value (${valueAtNewAddress.length} bytes), would you like to overwrite?`,
+       false,
+       'Cancel',
+       'Overwrite'
+      )
+      if (!overwrite) {
+       return
+      }
+     }
+     localStorage.setItem(answer, previously)
+     localStorage.removeItem(h.address.value)
+     h.address.value = answer
+     await h.openAddress()
+    }
+   },
+   async NEW(h) {
+    const answer = await dialog(`Enter address to create`, true, 'Cancel', 'Create', h.address.value)
+    if (typeof answer === 'string') {
+     newCell(lastFocusedCellContainer, answer, true)
+    }
    },
    async OPEN(h) {
     h.toggleOpen()
    }
   }
- </script>
- <script>
   async function delay(t = 150) {
    await new Promise(r => setTimeout(r, t))
   }
-  async function cell(container) {
+  const toolbarContainer = document.getElementById('toolbar')
+  const toolbarKeys = {}
+  for (const u of Array.from(toolbarContainer.getElementsByTagName('u'))) {
+   toolbarKeys[u.innerText.toUpperCase()] = u.parentElement.innerText.toUpperCase()
+  }
+  function getNext(x) {
+   return x.nextElementSibling ?? x.parentElement.firstElementChild
+  }
+  function getPrevious(x) {
+   return x.previousElementSibling ?? x.parentElement.lastElementChild
+  }
+  async function cell(container, initialAddress = '') {
+   container.setAttribute('tabindex', '0')
    const address = document.createElement('input')
+   address.value = initialAddress
    address.classList.add('address')
    address.setAttribute('placeholder', 'home')
    container.appendChild(address)
@@ -403,10 +562,13 @@
    container.appendChild(info)
    const openPanel = document.createElement('aside')
    container.appendChild(openPanel)
+   container.addEventListener('focus', () => {
+    toolbar(container)
+   })
    async function openAddress() {
     info.value = (new Date).toISOString()
     Object.assign(container.style, {
-     backgroundColor: '#887',
+     backgroundColor: '#552',
      transition: 'background-color 0.15s linear'
     })
     await delay()
@@ -433,32 +595,64 @@
     openPanel.style.height = openPanelIsOpen ? '20em' : '0'
    }
    const me = { address, container, close, info, openAddress, toggleOpen }
+   container.addEventListener('keydown', e => {
+    const upperKey = e.key.toUpperCase()
+    if (upperKey in toolbarKeys) {
+     const command = toolbarKeys[upperKey]
+     if (command in COMMAND) {
+      COMMAND[command](me)
+      e.preventDefault()
+      e.stopPropagation()
+     }
+    }
+    else {
+     switch (e.key) {
+      case 'ArrowUp':
+       getPrevious(container).focus()
+       break
+      case 'ArrowDown':
+       getNext(container).focus()
+       break
+     }
+    }
+   })
    container.cell = me
    return me
   }
-  const toolbarContainer = document.getElementById('toolbar')
+  toolbarContainer.addEventListener('mousedown', e => e.preventDefault())
   toolbarContainer.addEventListener('click', e => {
-   const command = e.target.innerText
+   let target = e.target
+   if (target.tagName === 'U') {
+    target = target.parentElement
+   }
+   const command = target.innerText
    if (command in COMMAND) {
     COMMAND[command](toolbarContainer.parentElement.cell)
    }
   })
+  let lastFocusedCellContainer
   function toolbar(element) {
    element.appendChild(toolbarContainer)
+   lastFocusedCellContainer = element
+   setTimeout(() => element.focus(), 0)
   }
-  toolbar(document.getElementById('first'))
   Array.from(document.getElementsByTagName('h1'))
-   .map(cell)
-  e => {
+   .map(x => cell(x))
+  document.getElementById('first').focus()
+  const focusElement = e => {
    let { target } = e
-   while (target && !target.tagName.startsWith('H')) {
+   if (target.tagName === 'INPUT') {
+    target.focus()
+    return
+   }
+   while (target && !target.tagName.startsWith('H') && !target.tagName === 'BODY') {
     target = target.parentElement
    }
-   if (target.tagName.startsWith('H')) {
-    toolbar(target)
+   if (target && target.tagName.startsWith('H')) {
+    target.focus()
    }
   }
-  document.body.addEventListener('mouseover', attachToolbar)
-  document.body.addEventListener('click', attachToolbar)
+  document.body.addEventListener('mousemove', focusElement)
+  document.body.addEventListener('click', focusElement)
  </script>
 </body>

@@ -50,11 +50,22 @@
     url(./rsrc/font/DejaVuSansMono-Oblique.woff) format("woff");
   }
 
+  body,
+  html {
+   height: 100vh;
+   min-height: 100%;
+   overflow-y: hidden;
+  }
+
   body {
    height: 100vh;
    background-color: #210;
    color: #def;
    flex-direction: row;
+  }
+
+  body[data-dialog="open"] {
+   overflow-x: hidden;
   }
 
   body[data-dialog="open"] section {
@@ -84,6 +95,9 @@
    flex-grow: 0;
    flex-shrink: 0;
    width: 50vw;
+   overflow-x: hidden;
+   overflow-y: auto;
+   padding: 0 0 12px;
   }
 
   @media screen and (max-width: 1080px) {
@@ -124,19 +138,20 @@
   }
 
   main {
-   margin: 0;
-   padding: 0 16px;
-   opacity: 0.5;
-   transition: opacity 0.15s ease;
-   position: absolute;
    bottom: 0;
-   left: 0;
-   max-width: 100vw;
-   overflow-y: hidden;
-   overflow-x: auto;
-   white-space: pre;
    display: none;
    flex-direction: row;
+   left: 0;
+   margin: 0;
+   max-width: 100vw;
+   opacity: 0.5;
+   overflow-x: auto;
+   overflow-y: hidden;
+   padding: 0 16px;
+   position: absolute;
+   transition: opacity 0.15s ease;
+   user-select: none;
+   white-space: pre;
   }
 
   main:hover {
@@ -239,7 +254,6 @@
    width: 100%;
    height: 50%;
    font-size: 200%;
-   opacity: 0.75;
   }
 
   .dialog button:first-of-type {
@@ -253,7 +267,7 @@
   }
 
   .dialog button:hover {
-   opacity: 1;
+   box-shadow: inset 0 0 0 4px #ffffff79;
   }
 
   .dialog article {
@@ -264,29 +278,29 @@
    justify-content: center;
    flex-direction: column;
    z-index: 1;
-   padding: 2vh;
+   padding: 1em;
   }
 
   .dialog blockquote {
-   margin: 0 2vh;
+   margin: 0 1em;
    text-align: center;
    background-color: #c8c8c8;
    color: #444444;
-   border-radius: 2vh;
-   padding: 2vh;
+   border-radius: 1em;
+   padding: 1em;
   }
 
   .dialog input {
    width: calc(100vw - 8vh);
-   margin: 2vh auto 0;
+   margin: 1em auto 0;
    line-height: 200%;
    font-size: inherit;
    background-color: transparent;
    color: #c8c8c8;
    font-family: inherit;
    border: 2px solid #c9c9c9;
-   padding: 2vh;
-   border-radius: 2vh;
+   padding: 1em;
+   border-radius: 1em;
   }
 
   input::placeholder,
@@ -331,6 +345,27 @@
    padding: 1em;
    text-transform: none;
   }
+
+  .triangle-up,
+  .triangle-down {
+   box-sizing: border-box;
+   display: inline-block;
+   overflow: hidden;
+   height: 0;
+   width: 10px;
+   border-left: 4px solid transparent;
+   border-right: 4px solid transparent;
+   position: relative;
+   top: -1px;
+  }
+
+  .triangle-down {
+   border-top: 8px solid;
+  }
+
+  .triangle-up {
+   border-bottom: 8px solid;
+  }
  </style>
 </head>
 <!--
@@ -355,15 +390,16 @@
   <h1></h1>
  </section>
  <main id="toolbar">
+  <button><u>A</u>ddress</button>
   <button><u>C</u>lose</button>
   <button><u>D</u>elete</button>
   <button><u>E</u>dit</button>
-  <button><u>M</u>ove</button>
   <button><u>N</u>ew</button>
+  <button><u>M</u>ove</button>
   <button><u>O</u>pen</button>
   <button><u>R</u>un</button>
-  <button title="Move up (Shift + Up Arrow)"><u>⮝</u></button>
-  <button title="Move up (Shift + Down Arrow)"><u>⮟</u></button>
+  <button title="Move up (Shift + Up Arrow)"><u><span class="triangle-up">Up</span></u></button>
+  <button title="Move down (Shift + Down Arrow)"><u><span class="triangle-down">Down</span></u></button>
   <!--button>Pick</button>
   <button>Drop</button-->
  </main>
@@ -397,6 +433,14 @@
 
 
    */
+  const DELAY = 15 // ms
+  function debounce(fn, time = 500) {
+   let timer
+   return function () {
+    clearTimeout(timer)
+    timer = setTimeout(fn, time)
+   }
+  }
   function zygote(config) {
    const me = { config }
    return me
@@ -413,7 +457,8 @@
   function closeDialog() {
    document.body.setAttribute('data-dialog', 'closed')
    dialogElements.wrap.style.display = 'none'
-   lastFocusedCellContainer?.focus()
+   elementToFocus = lastFocusedCellContainer
+   focusSoon()
   }
   async function NoHandler() {
    await new Promise(r => setTimeout(r, 150))
@@ -455,7 +500,8 @@
    })
   }
   async function newCell(referenceElement, address = '', insertAfter = false) {
-   const { container } = await cell(document.createElement('h1'), address)
+   const it = await cell(document.createElement('h1'), address)
+   const { container } = it
    if (insertAfter) {
     const nextSibling = referenceElement.nextElementSibling
     if (nextSibling) {
@@ -468,19 +514,27 @@
    else {
     referenceElement.appendChild(container)
    }
-   toolbar(container)
+   elementToFocus = container
+   focusSoon()
+   lastFocusedCellContainer = container
+   return it
   }
   const COMMAND = {
+   async ADDRESS(h) {
+    elementToFocus = h.address
+    focusSoon()
+   },
    async CLOSE(h) {
     const section = h.container.parentElement
     const previous = getPrevious(h.container)
     h.close()
     if (section.childElementCount === 0) {
-     await new Promise(r => setTimeout(r, 500))
+     await new Promise(r => setTimeout(r, DELAY))
      await newCell(section)
     }
     else {
-     previous.focus()
+     elementToFocus = previous
+     focusSoon()
     }
    },
    async EDIT(h) {
@@ -488,7 +542,7 @@
     const answer = await dialog(`Make changes to '${h.address.value}'`, true, 'Cancel', 'Save', previously)
     if (answer !== false) {
      localStorage.setItem(h.address.value, answer)
-     await h.openAddress()
+     await h.openAddress(true)
      console.info(`Saved '${h.address.value}', was previously: ${previously}`)
     }
    },
@@ -531,6 +585,30 @@
    },
    async OPEN(h) {
     h.toggleOpen()
+   },
+   async UP(h) {
+    const { container } = h
+    const previousElement = getPrevious(container)
+    if (container.parentElement.firstElementChild === container) {
+     container.parentElement.appendChild(container)
+    }
+    else {
+     container.parentElement.insertBefore(container, previousElement)
+    }
+    elementToFocus = container
+    focusSoon()
+   },
+   async DOWN(h) {
+    const { container } = h
+    const nextElement = getNext(container)
+    if (container.parentElement.lastElementChild === container) {
+     container.parentElement.insertBefore(container, container.parentElement.firstElementChild)
+    }
+    else {
+     container.parentElement.insertBefore(container, nextElement.nextElementSibling)
+    }
+    elementToFocus = container
+    focusSoon()
    }
   }
   async function delay(t = 150) {
@@ -547,6 +625,10 @@
   function getPrevious(x) {
    return x.previousElementSibling ?? x.parentElement.lastElementChild
   }
+  let elementToFocus
+  const focusSoon = debounce(() => {
+   elementToFocus?.focus()
+  }, DELAY)
   async function cell(container, initialAddress = '') {
    container.setAttribute('tabindex', '0')
    const address = document.createElement('input')
@@ -565,7 +647,12 @@
    container.addEventListener('focus', () => {
     toolbar(container)
    })
-   async function openAddress() {
+   let lastKnownAddress // start out undefined to load once
+   async function openAddress(refresh = false) {
+    if (!refresh && address.value === lastKnownAddress) {
+     return
+    }
+    lastKnownAddress = address.value
     info.value = (new Date).toISOString()
     Object.assign(container.style, {
      backgroundColor: '#552',
@@ -574,13 +661,6 @@
     await delay()
     content.innerText = localStorage.getItem(address.value) ?? 'Tag Me In'
     container.style.backgroundColor = 'transparent'
-   }
-   function debounce(fn, time = 500) {
-    let timer
-    return function () {
-     clearTimeout(timer)
-     timer = setTimeout(fn, time)
-    }
    }
    openAddressDebounced = debounce(openAddress)
    address.addEventListener('keyup', openAddressDebounced)
@@ -596,6 +676,39 @@
    }
    const me = { address, container, close, info, openAddress, toggleOpen }
    container.addEventListener('keydown', e => {
+    switch (e.key) {
+     case 'ArrowUp':
+      e.preventDefault()
+      elementToFocus = getPrevious(container)
+      if (e.shiftKey) {
+       if (container !== elementToFocus) {
+        COMMAND.UP(me)
+       }
+       return
+      }
+      focusSoon()
+      return
+     case 'ArrowDown':
+      e.preventDefault()
+      elementToFocus = getNext(container)
+      if (e.shiftKey) {
+       if (container !== elementToFocus) {
+        COMMAND.DOWN(me)
+       }
+       return
+      }
+      focusSoon()
+      return
+    }
+    const exit = e.key === 'Escape' || e.key === 'Enter'
+    if (exit && e.target.tagName === 'INPUT') {
+     elementToFocus = e.target.parentElement
+     focusSoon()
+     return
+    }
+    if (e.target !== container) {
+     return
+    }
     const upperKey = e.key.toUpperCase()
     if (upperKey in toolbarKeys) {
      const command = toolbarKeys[upperKey]
@@ -603,16 +716,6 @@
       COMMAND[command](me)
       e.preventDefault()
       e.stopPropagation()
-     }
-    }
-    else {
-     switch (e.key) {
-      case 'ArrowUp':
-       getPrevious(container).focus()
-       break
-      case 'ArrowDown':
-       getNext(container).focus()
-       break
      }
     }
    })
@@ -634,22 +737,35 @@
   function toolbar(element) {
    element.appendChild(toolbarContainer)
    lastFocusedCellContainer = element
-   setTimeout(() => element.focus(), 0)
+   elementToFocus = element
+   focusSoon()
   }
   Array.from(document.getElementsByTagName('h1'))
    .map(x => cell(x))
-  document.getElementById('first').focus()
+  elementToFocus = document.getElementById('first')
+  focusSoon()
   const focusElement = e => {
    let { target } = e
+   if (e.target.tagName === 'U' || e.target.tagName === 'BUTTON') {
+    return
+   }
+   e.stopPropagation()
+   e.preventDefault()
    if (target.tagName === 'INPUT') {
-    target.focus()
+    elementToFocus = target
+    focusSoon()
     return
    }
    while (target && !target.tagName.startsWith('H') && !target.tagName === 'BODY') {
     target = target.parentElement
    }
-   if (target && target.tagName.startsWith('H')) {
-    target.focus()
+   if (target && target.tagName.startsWith('H') && target.tagName !== 'HTML') {
+    elementToFocus = target
+    focusSoon()
+   }
+   else {
+    elementToFocus = lastFocusedCellContainer
+    focusSoon()
    }
   }
   document.body.addEventListener('mousemove', focusElement)

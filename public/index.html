@@ -62,6 +62,7 @@
    background-color: #210;
    color: #def;
    flex-direction: row;
+   user-select: none;
   }
 
   body[data-dialog="open"] {
@@ -150,7 +151,6 @@
    padding: 0 16px;
    position: absolute;
    transition: opacity 0.15s ease;
-   user-select: none;
    white-space: pre;
   }
 
@@ -165,6 +165,12 @@
   h5:focus main,
   h6:focus main {
    display: flex;
+  }
+
+  input,
+  span,
+  blockquote {
+   user-select: text;
   }
 
   button {

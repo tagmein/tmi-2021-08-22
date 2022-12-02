@@ -270,7 +270,7 @@
    text-align: center;
    background-color: #c8c8c8;
    color: #444444;
-   border-radius: 8px;
+   border-radius: 2px;
    padding: 1em;
   }
 
@@ -284,7 +284,7 @@
    font-family: inherit;
    border: 2px solid #c9c9c9;
    padding: 1em;
-   border-radius: 8px;
+   border-radius: 2px;
   }
 
   input::placeholder,
@@ -319,7 +319,7 @@
 
   button label {
    background-color: #ffffff12;
-   border-radius: 8px;
+   border-radius: 2px;
    color: #ffffff79;
    cursor: inherit;
    display: inline-block;
@@ -607,6 +607,7 @@
   let elementToFocus
   const focusSoon = debounce(() => {
    elementToFocus?.focus()
+   elementToFocus?.scrollIntoView()
   }, DELAY)
   async function cell(container, initialAddress = '') {
    container.setAttribute('tabindex', '0')

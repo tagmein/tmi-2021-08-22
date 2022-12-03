@@ -212,10 +212,12 @@
 
   span {
    display: inline-block;
-   height: 1.25em;
-   overflow: visible;
+   min-height: 1.25em;
+   max-height: 3.75em;
+   overflow: hidden;
    text-overflow: ellipsis;
-   white-space: nowrap;
+   white-space: normal;
+   word-wrap: break-word;
   }
 
   span::after {
@@ -384,8 +386,8 @@
   <button><u>M</u>ove</button>
   <button><u>O</u>pen</button>
   <button><u>R</u>un</button>
-  <button title="Move up (Shift + Up Arrow)"><u><span class="triangle-up">Up</span></u></button>
-  <button title="Move down (Shift + Down Arrow)"><u><span class="triangle-down">Down</span></u></button>
+  <button title="Move up (Shift + Up Arrow)"><u><i class="triangle-up">Up</i></u></button>
+  <button title="Move down (Shift + Down Arrow)"><u><i class="triangle-down">Down</i></u></button>
   <!--button>Pick</button>
   <button>Drop</button-->
  </main>

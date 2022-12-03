@@ -102,6 +102,10 @@
    background-color: #fff;
   }
 
+  h1 {
+   font-size: 22px;
+  }
+
   h1,
   h2,
   h3,
@@ -109,7 +113,7 @@
   h5,
   h6 {
    padding: 36px 16px;
-   border-bottom: 2px solid #552;
+   border: 4px solid #ffffff12;
    margin: 0;
    position: relative;
    display: flex;
@@ -126,7 +130,7 @@
    opacity: 0.5;
    overflow-x: auto;
    overflow-y: hidden;
-   padding: 0 8px;
+   padding: 0 12px 8px;
    position: absolute;
    transition: opacity 0.15s ease;
    white-space: pre;
@@ -155,7 +159,7 @@
    color: #def;
    border: none;
    margin: 0;
-   padding: 8px;
+   padding: 4px;
    text-transform: uppercase;
    transition: color 0.15s ease, background-color 0.15s ease;
    letter-spacing: 0.5px;
@@ -179,15 +183,15 @@
 
   .address,
   .info {
+   background-color: transparent;
+   border: none;
+   color: #def;
+   font-size: 16px;
+   overflow: hidden;
+   padding: 8px 16px;
    position: absolute;
    top: 0;
-   padding: 8px 16px;
-   font-size: 16px;
-   color: #def;
-   background-color: transparent;
-   width: 50%;
-   overflow: hidden;
-   border: none;
+   width: calc(50% + 2px);
   }
 
   .address {
@@ -197,7 +201,7 @@
   .info {
    right: 0;
    font-size: 10px;
-   line-height: 24px;
+   line-height: 19px;
    text-align: right;
   }
 
@@ -270,7 +274,7 @@
    text-align: center;
    background-color: #c8c8c8;
    color: #444444;
-   border-radius: 2px;
+   border-radius: 4px;
    padding: 1em;
   }
 
@@ -282,9 +286,9 @@
    background-color: transparent;
    color: #c8c8c8;
    font-family: inherit;
-   border: 2px solid #c9c9c9;
+   border: 4px solid #c9c9c9;
    padding: 1em;
-   border-radius: 2px;
+   border-radius: 4px;
   }
 
   input::placeholder,
@@ -293,11 +297,10 @@
   }
 
   aside {
-   height: 0;
-   overflow: hidden;
+   overflow-x: hidden;
+   overflow-y: auto;
    background-color: #c8c8c838;
    margin: 0.175em 0 -0.175em;
-   transition: height 0.5s linear;
   }
 
   u {
@@ -319,7 +322,7 @@
 
   button label {
    background-color: #ffffff12;
-   border-radius: 2px;
+   border-radius: 4px;
    color: #ffffff79;
    cursor: inherit;
    display: inline-block;
@@ -350,6 +353,10 @@
   .triangle-up {
    border-bottom: 8px solid;
   }
+
+  body>article {
+   display: none;
+  }
  </style>
 </head>
 <!--
@@ -373,6 +380,7 @@
   <button><u>C</u>lose</button>
   <button><u>D</u>elete</button>
   <button><u>E</u>dit</button>
+  <button><u>H</u>elp</button>
   <button><u>N</u>ew</button>
   <button><u>M</u>ove</button>
   <button><u>O</u>pen</button>
@@ -382,6 +390,8 @@
   <!--button>Pick</button>
   <button>Drop</button-->
  </main>
+ <article id="panel-help" tabindex="0">help</article>
+ <article id="panel-open" tabindex="0">open</article>
  <div class="dialog" id="dialog-wrap">
   <button id="dialog-no">
    <div id="dialog-noLabel">No</div>
@@ -478,6 +488,7 @@
     onYes = () => r(hasInput ? dialogElements.response.value : true)
    })
   }
+  const panelElements = getByIds('panel-', 'open', 'help')
   async function newCell(referenceElement, address = '', insertAfter = false) {
    const it = await cell(document.createElement('h1'), address)
    const { container } = it
@@ -562,8 +573,11 @@
      newCell(lastFocusedCellContainer, answer, true)
     }
    },
+   async HELP(h) {
+    h.togglePanel('help')
+   },
    async OPEN(h) {
-    h.toggleOpen()
+    h.togglePanel('open')
    },
    async UP(h) {
     const { container } = h
@@ -622,8 +636,8 @@
    const content = document.createElement('span')
    container.appendChild(content)
    container.appendChild(info)
-   const openPanel = document.createElement('aside')
-   container.appendChild(openPanel)
+   const panelContainer = document.createElement('aside')
+   container.appendChild(panelContainer)
    container.addEventListener('focus', () => {
     toolbar(container)
    })
@@ -645,16 +659,26 @@
    openAddressDebounced = debounce(openAddress)
    address.addEventListener('keyup', openAddressDebounced)
    address.addEventListener('change', openAddressDebounced)
+   address.addEventListener('mousemove', openAddressDebounced)
    openAddress()
    function close() {
     container.parentElement.removeChild(container)
    }
-   let openPanelIsOpen = false
-   function toggleOpen() {
-    openPanelIsOpen = !openPanelIsOpen
-    openPanel.style.height = openPanelIsOpen ? '20em' : '0'
+   function togglePanel(panelName) {
+    if (!(panelName in panelElements)) {
+     throw new Error(`no panel with name '${panelName}'`)
+    }
+    const panel = panelElements[panelName]
+    if (panel.parentElement === panelContainer) {
+     panelContainer.removeChild(panel)
+    }
+    else {
+     panelContainer.appendChild(panel)
+    }
+    elementToFocus = panel
+    focusSoon()
    }
-   const me = { address, container, close, info, openAddress, toggleOpen }
+   const me = { address, container, close, info, openAddress, togglePanel }
    container.addEventListener('keydown', e => {
     switch (e.key) {
      case 'ArrowUp':
@@ -731,12 +755,12 @@
    }
    e.stopPropagation()
    e.preventDefault()
-   if (target.tagName === 'INPUT') {
-    elementToFocus = target
-    focusSoon()
-    return
-   }
-   while (target && !target.tagName.startsWith('H') && !target.tagName === 'BODY') {
+   while (target && !target.tagName.startsWith('H') && target.tagName !== 'BODY') {
+    if (target?.tagName === 'INPUT' || target?.tagName === 'ARTICLE') {
+     elementToFocus = target
+     focusSoon()
+     return
+    }
     target = target.parentElement
    }
    if (target && target.tagName.startsWith('H') && target.tagName !== 'HTML') {

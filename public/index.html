@@ -374,7 +374,6 @@
  -->
 
 <body>
- <h1 id="first"></h1>
  <main id="toolbar">
   <button><u>A</u>ddress</button>
   <button><u>C</u>lose</button>
@@ -488,6 +487,36 @@
     onYes = () => r(hasInput ? dialogElements.response.value : true)
    })
   }
+  function decode(x) {
+   return JSON.parse(decodeURIComponent(x))
+  }
+  function encode(x) {
+   return encodeURIComponent(JSON.stringify(x))
+  }
+  const Session = {
+   async read() {
+    try {
+     const addresses = decode(location.hash.substring(1))
+     for (const addr of addresses) {
+      await newCell(document.body, addr)
+     }
+    }
+    catch (e) {
+     console.error(e)
+    }
+    finally {
+     if (!hasAnyCells(document.body)) {
+      newCell(document.body)
+     }
+    }
+   },
+   async write() {
+    location.hash = encode(
+     Array.from(document.body.children).filter(x => x.tagName === 'H1')
+      .map(x => x.cell.address.value)
+    )
+   }
+  }
   const panelElements = getByIds('panel-', 'open', 'help')
   async function newCell(referenceElement, address = '', insertAfter = false) {
    const it = await cell(document.createElement('h1'), address)
@@ -504,10 +533,14 @@
    else {
     referenceElement.appendChild(container)
    }
+   Session.write()
    elementToFocus = container
    focusSoon()
    lastFocusedCellContainer = container
    return it
+  }
+  function hasAnyCells(section) {
+   return Array.from(section.children).some(x => x.tagName === 'H1')
   }
   const COMMAND = {
    async ADDRESS(h) {
@@ -516,13 +549,14 @@
    },
    async CLOSE(h) {
     const section = h.container.parentElement
-    const previous = getPrevious(h.container)
+    const previous = getPreviousCellContainer(h.container)
     h.close()
-    if (section.childElementCount === 0) {
+    if (!hasAnyCells(section)) {
      await new Promise(r => setTimeout(r, DELAY))
      await newCell(section)
     }
     else {
+     Session.write()
      elementToFocus = previous
      focusSoon()
     }
@@ -581,25 +615,27 @@
    },
    async UP(h) {
     const { container } = h
-    const previousElement = getPrevious(container)
-    if (container.parentElement.firstElementChild === container) {
+    const previousElement = getPreviousCellContainer(container)
+    if (Array.from(container.parentElement.children).find(x => x.tagName === 'H1') === container) {
      container.parentElement.appendChild(container)
     }
     else {
      container.parentElement.insertBefore(container, previousElement)
     }
+    Session.write()
     elementToFocus = container
     focusSoon()
    },
    async DOWN(h) {
     const { container } = h
-    const nextElement = getNext(container)
+    const nextElement = getNextCellContainer(container)
     if (container.parentElement.lastElementChild === container) {
      container.parentElement.insertBefore(container, container.parentElement.firstElementChild)
     }
     else {
      container.parentElement.insertBefore(container, nextElement.nextElementSibling)
     }
+    Session.write()
     elementToFocus = container
     focusSoon()
    }
@@ -612,11 +648,23 @@
   for (const u of Array.from(toolbarContainer.getElementsByTagName('u'))) {
    toolbarKeys[u.innerText.toUpperCase()] = u.parentElement.innerText.toUpperCase()
   }
-  function getNext(x) {
-   return x.nextElementSibling ?? x.parentElement.firstElementChild
+  function getNextCellContainer(x) {
+   let next = x
+   while (next = next.nextElementSibling) {
+    if (next.tagName === 'H1') {
+     return next
+    }
+   }
+   return Array.from(x.parentElement.children).find(x => x.tagName === 'H1')
   }
-  function getPrevious(x) {
-   return x.previousElementSibling ?? x.parentElement.lastElementChild
+  function getPreviousCellContainer(x) {
+   let previous = x
+   while (previous = previous.previousElementSibling) {
+    if (previous.tagName === 'H1') {
+     return previous
+    }
+   }
+   return Array.from(x.parentElement.children).reverse().find(x => x.tagName === 'H1')
   }
   let elementToFocus
   const focusSoon = debounce(() => {
@@ -655,6 +703,7 @@
     await delay()
     content.innerText = localStorage.getItem(address.value) ?? 'Tag Me In'
     container.style.backgroundColor = 'transparent'
+    Session.write()
    }
    openAddressDebounced = debounce(openAddress)
    address.addEventListener('keyup', openAddressDebounced)
@@ -683,7 +732,7 @@
     switch (e.key) {
      case 'ArrowUp':
       e.preventDefault()
-      elementToFocus = getPrevious(container)
+      elementToFocus = getPreviousCellContainer(container)
       if (e.shiftKey) {
        if (container !== elementToFocus) {
         COMMAND.UP(me)
@@ -694,7 +743,7 @@
       return
      case 'ArrowDown':
       e.preventDefault()
-      elementToFocus = getNext(container)
+      elementToFocus = getNextCellContainer(container)
       if (e.shiftKey) {
        if (container !== elementToFocus) {
         COMMAND.DOWN(me)
@@ -744,10 +793,6 @@
    elementToFocus = element
    focusSoon()
   }
-  Array.from(document.getElementsByTagName('h1'))
-   .map(x => cell(x))
-  elementToFocus = document.getElementById('first')
-  focusSoon()
   const focusElement = e => {
    let { target } = e
    if (e.target.tagName === 'U' || e.target.tagName === 'BUTTON') {
@@ -774,5 +819,6 @@
   }
   document.body.addEventListener('mousemove', focusElement)
   document.body.addEventListener('click', focusElement)
+  Session.read()
  </script>
 </body>

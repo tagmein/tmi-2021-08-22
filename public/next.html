@@ -1,0 +1,279 @@
+<!doctype html>
+<head>
+ <title>Tag Me In</title>
+ <meta charset="UTF-8">
+</head>
+<body>
+<script>
+ const SEPARATOR = ','
+ const NEWLINE = '\n'
+ const ROOT = window
+
+ function blocks(source, separator=SEPARATOR) {
+  // console.log('formatting', JSON.stringify(source))
+  return source.reduce(
+   (slurp, line) => {
+    if (line[0] === separator) {
+     if (slurp.lines.length === 0) {
+      slurp.lines.push([, []])
+     }
+     const top = slurp.lines[slurp.lines.length - 1]
+     if (!(1 in top)) {
+      top[1] = []
+     }
+     top[1].push(line.slice(1))
+    } else {
+     slurp.lines.push(...tokenize(line, separator))
+     // console.log(JSON.stringify(slurp.lines.slice()))
+    }
+    return slurp
+   },
+   { lines: [], level: 0 }
+  ).lines
+ }
+ 
+ function run(me, code, parent={ focus: ROOT }) {
+  for (const [statement, appendix] of code) {
+   if (me.focus instanceof Error) {
+    return
+   }
+   const stack = []
+   const [term, ...args] = statement
+   if (!(term in WORDS)) {
+    me.focus = Error(`word '${term}' is not known`)
+    break
+   }
+   //console.log(me, term, args)
+   try {
+    me.focus = WORDS[term](me, appendix, args, parent)
+   }
+   catch (e) {
+    console.info(e)
+    me.focus = e
+   }
+  }
+ }
+
+ function rs /* ReadableScript */ ([source]) {
+  const me = {
+   focus: ROOT
+  }
+  const code = blocks(
+   source
+    .trim()
+    .split(NEWLINE)
+    .map(x => x
+     .trim()
+     .replace(/\s+/g, ' ')
+     .split(' ')
+     .filter(x => x.length)
+    )
+    .filter(x => x.length)
+  )
+  run(me, code)
+  if (me.focus instanceof Error) {
+   throw me.focus
+  }
+  return me.focus
+ }
+
+ function tokenize(_source, separator=SEPARATOR) {
+  const source = _source.slice()
+  const parts = []
+  while (true) {
+   const nextIndex = source.indexOf(separator)
+   if (nextIndex > -1) {
+    const part = source.splice(0, nextIndex + 1)
+    part.pop()
+    parts.push([part])
+    // console.log(nextIndex, source, parts)
+    continue
+   }
+   if (source.length > 0) {
+    parts.push([ source ])
+   }
+   return parts
+  }
+ }
+
+ function traverse(subject, _path) {
+  const path = _path.slice()
+  const lastSegment = path.pop()
+  let leaf = subject
+  for (const segment of path) {
+   // console.log(leaf, segment)
+   leaf = leaf[segment]
+  }
+  return { lastSegment, leaf }
+ }
+
+ const WORDS = {
+ 
+  at(me, appendix, path) {
+   // console.log('at', me.focus, { path, appendix })
+   const { lastSegment, leaf } = traverse(me.focus, path)
+   const edge = leaf[lastSegment]
+   const focus = typeof edge === 'function' ? edge.bind(leaf) : edge
+   if (appendix?.length > 0) {
+    const child = {
+     focus
+    }
+    const code = blocks(appendix)
+    for (const x of code) {
+     run(child, [x])
+    }
+   }
+   else {
+    me.focus = focus
+   }
+   return me.focus
+  },
+
+  get(me, appendix, args) {
+   const { lastSegment, leaf } = traverse(me.focus, args)
+   return leaf[lastSegment]
+  },
+  
+  define(me, appendix, args) {
+   WORDS.set(me, undefined, args.concat(runScope => {
+    // console.log('run defined', { runScope, appendix })
+    if (appendix?.length > 0) {
+     const code = blocks(appendix)
+     for (const x of code) {
+      run(runScope, [x])
+     }
+    }
+   }))
+   return me.focus
+  },
+  
+  import(me, appendix, args, parent) {
+   for (const arg of args) {
+    me.focus[arg] = parent.focus[arg]
+   }
+   return me.focus
+  },
+  
+  log(me, appendix, args, parent) {
+   console.log('log', { me, appendix, args, parent })
+   return me.focus
+  },
+  
+  raw(me, appendix, args) {
+   // console.log('raw', { appendix, args })
+   return appendix.map(a => a.join(' ')).join('\n')
+  },
+  
+  regexp(me, appendix, args) {
+   console.log('regexp', { me, appendix, args })
+  },
+  
+  run(me, appendix, args, parent) {
+   let focus = {}
+   const definition = WORDS.get(parent, [], args)
+   console.log('RUN', { me, appendix, definition, args, focus, parent })
+   if (appendix?.length > 0) {
+    const runScope = { focus }
+    const code = blocks(appendix)
+    for (const x of code) {
+     run(runScope, [x], me)
+     if (runScope.focus instanceof Error) {
+      return runScope.focus
+     }
+    }
+   }
+   definition({ focus })
+   return focus
+  },
+  
+  name(me, appendix, args) {
+   WORDS.set(me, undefined, args.concat(me.focus))
+   return me.focus
+  },
+  
+  pick(me, appendix, args) {
+   if (!('pick' in me)) {
+    me.pick = []
+   }
+   me.pick.push(me.focus)
+   return me.focus
+  },
+
+  set(me, appendix, args) {
+   const value = args.pop()
+   // console.log('set', me, args)
+   const { lastSegment, leaf } = traverse(me.focus, args)
+   leaf[lastSegment] = value
+   return leaf
+  },
+  
+  template(me, appendix, args) {
+   console.log({ me, appendix, args })
+  },
+
+  with(me, appendix, args) {
+   // console.log({ me,  appendix, args })
+   for (const x of appendix) {
+    run(me, [[args.concat(x)]])
+   }
+   return me.focus
+  }
+ }
+</script>
+<script>
+ rs`
+  at document body style
+  , with set
+  , , backgroundColor #282828
+  , , color           #ffffff
+
+  define class
+  , log
+  , at document createElement
+  , , call style
+  , , name styleTag
+  , regexp /&/g
+  , pick
+  , template .$0
+  , , get name
+  , pick
+  , at styles replace
+  , , call
+  , name styleTag innerText
+  , log
+  , at document head appendChild
+  , , call
+
+  define cell
+  , at document createElement
+  , , call div
+  , name container
+  , run class
+  , , import document
+  , , raw
+  , , , & {
+  , , ,  box-sizing: border-box;
+  , , ,  width:      200px;
+  , , ,  height:     100px;
+  , , ,  border:     2px solid #797979;
+  , , , }
+  , , name styles
+  , , log
+  , , set name CellContainer
+  , pick
+  , at container
+  , , at classList add
+  , , , call
+  , , pick
+  , log
+  , at parentElement appendChild
+  , , call
+  
+  run cell
+  , import class document
+  , at document body
+  , name parentElement
+ `
+</script>
+</body>
+
